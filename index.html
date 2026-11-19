@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo Library • ItsDrDan • CHEM 3A • 1A • 1B • 3B</title>
+<meta name="description" content="Every interactive lab and simulation from Dr. Dan's chemistry study games, plus his lecture videos and class demo videos, in one searchable place.">
+<link rel="icon" href="https://itsdrdan.github.io/games/assets/logo-32.png">
+<style>
+:root{--ink:#1f2a44;--muted:#4f5a74;--line:#e3e6f0;--card:#fffefa;--blue:#2f6fb0;
+ --lab:#1f6e4f;--lab-bg:#e5f5ec;--lab-line:#a9d9c2;--lec:#2c5e9e;--lec-bg:#e8f1fb;--lec-line:#b5cdea;--rx:#a3412f;--rx-bg:#fdece6;--rx-line:#efbfae;
+ --c3A:#23776c;--c3A-bg:#e4f3ec;--c1A:#4757b3;--c1A-bg:#e8ebfb;--c1B:#aa5039;--c1B-bg:#fbebe4;--c3B:#86509b;--c3B-bg:#f2e8f7}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:Nunito,Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);line-height:1.45;min-height:100vh;
+ background:radial-gradient(circle at 8% -5%,#dff0ff 0,transparent 38%),radial-gradient(circle at 95% 5%,#ffe6df 0,transparent 34%),linear-gradient(120deg,#f3faff,#fffaf2 50%,#fff3f1);background-attachment:fixed}
+button,input,select{font:inherit;color:inherit}[hidden]{display:none!important}
+a{color:var(--blue)}
+.app{max-width:1280px;margin:0 auto;padding:14px 14px 40px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:8px;background:#fff;padding:8px 12px;border-radius:10px;z-index:9}.skip:focus{left:8px}
+:focus-visible{outline:3px solid #5b6fe0;outline-offset:2px}
+/* hero */
+.hero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 26px;border-radius:24px;border:1px solid #d9e6f1;background:linear-gradient(115deg,#fff,#f0f8ff 55%,#fff1ee);box-shadow:0 8px 22px #2a5a7a10}
+.badge{display:inline-block;background:#fff;border:1px solid #e3dccd;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:800}
+.hero h1{margin:6px 0 4px;font-size:clamp(30px,4.2vw,46px);line-height:1.08;font-weight:900;letter-spacing:-.02em;font-family:Fredoka,Nunito,system-ui,sans-serif}
+.hero h1 .a{color:#c4493d}.hero h1 .b{color:#1f6fae}
+@supports (-webkit-background-clip:text){.hero h1 .b{background:linear-gradient(90deg,#1f6fae,#1d7f73);-webkit-background-clip:text;background-clip:text;color:transparent}}
+.subtitle{margin:0;color:var(--muted);font-size:15.5px}
+.logo{width:104px;flex:0 0 104px}.logo svg{display:block;width:100%;height:auto}
+/* how to */
+details.howto{margin:12px 0;border:2px solid #9fb6e8;border-bottom-width:5px;border-radius:18px;background:linear-gradient(120deg,#f7f3ff,#eef7ff)}
+details.howto>summary{list-style:none;cursor:pointer;padding:10px 18px;font-weight:900;font-size:18px;min-height:48px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details.howto>summary::-webkit-details-marker{display:none}
+details.howto>summary:after{content:"Tap to open ▾";font-size:13px;color:#fff;background:#3d5fae;padding:5px 12px;border-radius:999px;white-space:nowrap}
+details.howto[open]>summary:after{content:"Hide ▴";background:none;color:#3d5fae}
+details.howto ul{margin:0 18px 14px;padding-left:22px;line-height:1.6}
+/* filters */
+.filters{background:var(--card);border:1px solid #dfe8ef;border-radius:22px;box-shadow:0 8px 22px #2a5a7a10;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;position:relative;min-width:0}
+.filters:before{content:"";position:absolute;left:18px;right:18px;top:0;height:5px;border-radius:0 0 6px 6px;background:linear-gradient(90deg,#f28b82,#fbbc04,#7bd389,#64b5f6,#b39ddb)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font-weight:900;font-size:14px;min-width:64px;color:var(--muted)}
+.chip{min-height:44px;padding:6px 15px;border-radius:999px;border:2px solid #cfdbe6;background:#fff;font-weight:900;cursor:pointer}
+.chip[aria-pressed="true"]{background:#263840;color:#fff;border-color:#263840}
+.search{flex:1 1 240px;min-height:46px;border:2px solid #cfdbe6;border-radius:14px;padding:8px 14px;background:#fff;font-size:16px}
+select{min-height:44px;border:2px solid #cfdbe6;border-radius:12px;padding:6px 10px;background:#fff;font-weight:800;max-width:100%;min-width:0;flex:1 1 220px;text-overflow:ellipsis}
+.row>*{min-width:0}
+.count{font-weight:800;color:var(--muted);margin:14px 4px 8px}
+.clear{border:0;background:none;color:var(--blue);font-weight:900;text-decoration:underline;cursor:pointer;min-height:44px;padding:0 6px}
+/* sections + cards */
+h2.sec{font-family:Fredoka,Nunito,system-ui,sans-serif;font-size:22px;margin:22px 4px 10px;display:flex;align-items:center;gap:10px}
+h2.sec .n{font-size:14px;font-weight:800;color:var(--muted);font-family:Nunito,system-ui,sans-serif}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;list-style:none;margin:0;padding:0}
+.card{background:var(--card);border:1px solid #dfe8ef;border-radius:22px;box-shadow:0 8px 22px #2a5a7a10;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.lab{border-top:6px solid var(--lab-line)}.card.lecture{border-top:6px solid var(--lec-line)}.card.demo{border-top:6px solid var(--rx-line)}
+.top{display:flex;gap:10px;align-items:flex-start}
+.ico{width:52px;height:52px;border-radius:14px;flex:0 0 52px;object-fit:cover;background:#f2f4f8}
+.card h3{margin:0;font-size:17px;line-height:1.25;font-family:Fredoka,Nunito,system-ui,sans-serif;font-weight:600;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tag{font-size:12.5px;font-weight:900;border-radius:999px;padding:2px 9px;border:1px solid transparent}
+.t-lab{background:var(--lab-bg);color:var(--lab);border-color:var(--lab-line)}.t-lecture{background:var(--lec-bg);color:var(--lec);border-color:var(--lec-line)}.t-demo{background:var(--rx-bg);color:var(--rx);border-color:var(--rx-line)}
+.c3A{background:var(--c3A-bg);color:var(--c3A)}.c1A{background:var(--c1A-bg);color:var(--c1A)}.c1B{background:var(--c1B-bg);color:var(--c1B)}.c3B{background:var(--c3B-bg);color:var(--c3B)}
+.chap{font-size:13.5px;color:var(--muted);font-weight:700;margin:0}
+.what{margin:0;font-size:15px}
+.src{margin:0;font-size:12.5px;color:#5a6276}
+.act{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:8px 16px;border-radius:14px;font-weight:900;text-decoration:none;cursor:pointer;border:0}
+.open{background:#2c63c6;color:#fff;box-shadow:0 3px 0 #1d4691}.open:hover{background:#2456b2}
+.ghost{background:#fff;border:2px solid #cfdbe6;color:var(--ink)}
+.vid{position:relative;border-radius:14px;overflow:hidden;background:#111;aspect-ratio:16/9}
+.vid button{all:unset;cursor:pointer;display:block;width:100%;height:100%;position:relative}
+.vid button:focus-visible{outline:3px solid #5b6fe0;outline-offset:-3px}
+.vid img{width:100%;height:100%;object-fit:cover;display:block}
+.vid .play{position:absolute;inset:auto auto 10px 10px;background:#c4302b;color:#fff;font-weight:900;border-radius:12px;padding:6px 12px;font-size:14px}
+.vid .len{position:absolute;right:8px;bottom:10px;background:#000c;color:#fff;font-weight:800;border-radius:8px;padding:2px 7px;font-size:12.5px}
+.vid iframe{border:0;width:100%;height:100%;display:block}
+details.moments summary{cursor:pointer;font-weight:800;font-size:14px;min-height:44px;display:flex;align-items:center;color:var(--lec)}
+details.moments ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+details.moments button{all:unset;cursor:pointer;display:flex;gap:8px;padding:6px 8px;border-radius:10px;font-size:14px;min-height:32px;align-items:center}
+details.moments button:hover,details.moments button:focus-visible{background:var(--lec-bg)}
+details.moments button:focus-visible{outline:3px solid #5b6fe0}
+details.moments .ts{font-variant-numeric:tabular-nums;font-weight:900;color:var(--lec);min-width:46px}
+.more{display:block;margin:16px auto 0;min-height:48px}
+.empty{background:var(--card);border:1px dashed #cfdbe6;border-radius:18px;padding:18px;text-align:center;font-weight:800}
+footer{margin-top:30px;font-size:13.5px;color:var(--muted);text-align:center}
+footer p{margin:4px 0}
+@media (max-width:640px){
+ .hero{padding:14px 16px}.logo{width:72px;flex-basis:72px}
+ .lbl{min-width:100%}
+ .grid{grid-template-columns:1fr}
+ .chip{padding:6px 12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+<link rel="stylesheet" href="https://itsdrdan.github.io/games/brand/itsdrdan.css" media="print" onload="this.media='all'"><!-- loads without blocking the first paint -->
+<noscript><link rel="stylesheet" href="https://itsdrdan.github.io/games/brand/itsdrdan.css"></noscript>
+</head>
+<body>
+<a class="skip" href="#results">Skip to the demos</a>
+<div class="app">
+<header class="hero">
+ <div>
+  <span class="badge">Demos • ItsDrDan • CHEM 3A • 1A • 1B • 3B</span>
+  <h1><span class="a">Chemistry</span> <span class="b">Demo Library</span></h1>
+  <p class="subtitle">Every lab and simulation from the study games, plus lecture videos and class demo videos, in one place.</p>
+ </div>
+ <div class="logo" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="lg1" x1="0" x2="1"><stop offset="0" stop-color="#7fd3c5"/><stop offset="1" stop-color="#7ab8ef"/></linearGradient></defs>
+  <rect x="6" y="14" width="108" height="76" rx="14" fill="#fff" stroke="#c9d9ea" stroke-width="3"/>
+  <rect x="14" y="22" width="92" height="60" rx="9" fill="#eef6ff"/>
+  <path d="M50 30v14L36 70a5 5 0 0 0 4.5 7h39a5 5 0 0 0 4.5-7L70 44V30" fill="none" stroke="#2c4a6e" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M42 62h36l6 9a4 4 0 0 1-3.5 6h-39a4 4 0 0 1-3.5-6z" fill="url(#lg1)"/>
+  <line x1="46" y1="30" x2="74" y2="30" stroke="#2c4a6e" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="55" cy="56" r="3" fill="#e0675a"/><circle cx="64" cy="49" r="2.4" fill="#e0675a"/><circle cx="60" cy="40" r="1.8" fill="#e0675a"/>
+  <circle cx="92" cy="94" r="20" fill="#e0675a"/><path d="M87 84v20l16-10z" fill="#fff"/>
+  <rect x="44" y="96" width="32" height="8" rx="4" fill="#c9d9ea"/></svg></div>
+</header>
+
+<details class="howto"><summary>How to use the Demo Library</summary><ul>
+ <li>Pick your <b>course</b>, then a <b>chapter</b>, or search a topic like “osmosis”.</li>
+ <li><b>Open demo</b> starts the lab in a new tab.</li>
+ <li><b>Play</b> starts a video right on the card.</li>
+ <li>Teachers: the address bar keeps your filters, so you can share or post the link.</li>
+</ul></details>
+
+<section class="filters" aria-label="Filter the demos">
+ <div class="row"><label class="lbl" for="q">Search</label><input id="q" class="search" type="search" placeholder="Try osmosis, gas laws, enzymes…" autocomplete="off"></div>
+ <div class="row" role="group" aria-labelledby="lc"><span class="lbl" id="lc">Course</span><span id="courseChips" class="row"></span></div>
+ <div class="row" role="group" aria-labelledby="lt"><span class="lbl" id="lt">Show</span><span id="typeChips" class="row"></span></div>
+ <div class="row" id="chRow" hidden><label class="lbl" for="ch">Chapter</label><select id="ch"></select></div>
+</section>
+
+<p class="count" id="count" role="status" aria-live="polite"></p>
+<main id="results" tabindex="-1"></main>
+
+<footer>
+ <p>Interactives and lecture videos by Dr. Dan (ItsDrDan), all rights reserved. Class demo videos belong to their YouTube creators and play from YouTube.</p>
+ <p><a href="https://itsdrdan.github.io/games/">Study Hub</a> · <a href="https://www.youtube.com/@itsdrdan">YouTube @itsdrdan</a> · <a href="https://github.com/ItsDrDan/demos/blob/main/SOURCES.md">Sources</a></p>
+</footer>
+</div>
+
+<script src="data/interactives.js"></script>
+<script src="data/demo-videos.js"></script>
+<script src="data/lectures.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const CH=window.DEMO_CHAPTERS||{};
+const COURSES=['3A','1A','1B','3B'];
+const TYPES=[['all','Everything'],['lab','Interactives'],['demo','Demo videos'],['lecture','Lecture videos']];
+const TYPE_TAG={lab:'Interactive',demo:'Demo video',lecture:'Lecture video'};
+const SEC={lab:'Interactives and simulations',demo:'Demo videos from class',lecture:'Dr. Dan’s lecture videos'};
+const ALL=[].concat(window.DEMO_ITEMS||[],window.DEMO_VIDEOS||[],window.DEMO_LECTURES||[]);
+const PAGE=24;
+const st={course:'all',type:'all',ch:'',q:'',shown:{lab:PAGE,demo:PAGE,lecture:PAGE}};
+// URL state
+try{const p=new URLSearchParams(location.search);
+ const c=(p.get('course')||'').toUpperCase().replace('CHEM','').trim();if(COURSES.includes(c))st.course=c;
+ const t=(p.get('type')||'').toLowerCase();if(TYPES.some(x=>x[0]===t))st.type=t;
+ st.ch=p.get('ch')||'';st.q=p.get('q')||'';}catch(e){}
+function chName(c,n){const r=(CH[c]||[]).find(x=>x[0]===String(n));return r?(r[1]+' · '+r[2]):'';}
+function chOrder(c,n){const i=(CH[c]||[]).findIndex(x=>x[0]===String(n));return i<0?999:i;}
+function fmtT(s){s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0');}
+const norm=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[₀-₉]/g,d=>'0123456789'['₀₁₂₃₄₅₆₇₈₉'.indexOf(d)]);
+for(const it of ALL){
+ const chs=[];for(const c of it.courses||[])for(const n of (it.ch&&it.ch[c])||[])chs.push(c+' '+chName(c,n));
+ it._hay=norm([it.title,it.what,it.game,(it.tags||[]).join(' '),chs.join(' '),(it.moments||[]).map(m=>m[1]).join(' '),it.channel,it.from].join(' '));
+}
+function matches(it){
+ if(st.type!=='all'&&it.type!==st.type)return false;
+ if(st.course!=='all'){if(!(it.courses||[]).includes(st.course))return false;
+  if(st.ch&&!((it.ch&&it.ch[st.course])||[]).includes(st.ch))return false;}
+ if(st.q){const words=norm(st.q).split(/\s+/).filter(Boolean);if(!words.every(w=>it._hay.includes(w)))return false;}
+ return true;}
+function sortKey(it){if(st.course==='all')return 0;const n=((it.ch&&it.ch[st.course])||[]).map(x=>chOrder(st.course,x));return n.length?Math.min(...n):999;}
+function courseTags(it){return (it.courses||[]).map(c=>`<span class="tag c${c}">CHEM ${c}</span>`).join('');}
+function chapLine(it){
+ const cs=st.course!=='all'?[st.course]:(it.courses||[]);const parts=[];
+ for(const c of cs)for(const n of ((it.ch&&it.ch[c])||[]).slice(0,2))parts.push((cs.length>1?c+' ':'')+chName(c,n));
+ return parts.length?`<p class="chap">${esc(parts.join(' • '))}</p>`:'';}
+function labUrl(it){
+ if(!it.cp)return it.url;
+ const c=st.course!=='all'&&(it.courses||[]).includes(st.course)?st.course:(it.courses||[])[0];
+ try{const u=new URL(it.url,location.href);u.searchParams.set('course',c);return u.href;}catch(e){return it.url;}}
+function labCard(it){
+ const ico=it.icon?`<img class="ico" src="${esc(it.icon)}" alt="" loading="lazy" width="52" height="52">`:'';
+ return `<li class="card lab"><div class="top">${ico}<div><h3>${esc(it.title)}</h3><div class="tags"><span class="tag t-lab">${TYPE_TAG.lab}</span>${courseTags(it)}</div></div></div>
+ ${chapLine(it)}<p class="what">${esc(it.what)}</p>${it.game?`<p class="src">In ${esc(it.game)}${it.note?' · '+esc(it.note):''}</p>`:''}
+ <div class="act"><a class="btn open" href="${esc(labUrl(it))}" target="_blank" rel="noopener" aria-label="Open demo: ${esc(it.title)} (opens in a new tab)">Open demo ↗</a></div></li>`;}
+function vidCard(it){
+ const t=it.type;const mom=(it.moments||[]).filter(m=>m[0]>0);
+ const momHtml=mom.length?`<details class="moments"><summary>Jump to a part (${mom.length+1})</summary><ul>${[[0,'Start']].concat(mom).map(m=>`<li><button type="button" data-t="${m[0]}"><span class="ts">${fmtT(m[0])}</span><span>${esc(m[1])}</span></button></li>`).join('')}</ul></details>`:'';
+ const src=t==='demo'?`<p class="src">Video by ${esc(it.channel||'a YouTube creator')} · from ${esc(it.from)}</p>`:'';
+ return `<li class="card ${t}" data-id="${esc(it.id)}"><div class="vid"><button type="button" class="playbtn" data-yt="${esc(it.yt)}" data-start="${it.start||0}" ><img src="https://i.ytimg.com/vi/${esc(it.yt)}/mqdefault.jpg" alt="" loading="lazy" width="320" height="180"><span class="play"><span aria-hidden="true">▶ </span>Play<span class="sr"> video: ${esc(it.title)}</span></span>${it.dur?`<span class="len" aria-hidden="true">${fmtT(it.dur)}</span>`:''}</button></div>
+ <h3>${esc(it.title)}</h3><div class="tags"><span class="tag t-${t}">${TYPE_TAG[t]}</span>${courseTags(it)}</div>
+ ${chapLine(it)}${it.what?`<p class="what">${esc(it.what)}</p>`:''}${src}${momHtml}</li>`;}
+function play(card,yt,start){
+ const box=card.querySelector('.vid');const title=card.querySelector('h3').textContent;
+ box.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&rel=0&start=${Math.max(0,start|0)}" title="Video: ${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+ const f=box.querySelector('iframe');try{f.focus();}catch(e){}
+ window.dispatchEvent(new Event('resize'));}
+function render(){
+ const list=ALL.filter(matches);
+ const groups={lab:[],demo:[],lecture:[]};for(const it of list)groups[it.type].push(it);
+ for(const k in groups)groups[k].sort((a,b)=>sortKey(a)-sortKey(b));
+ let html='';
+ for(const k of ['lab','demo','lecture']){const g=groups[k];if(!g.length)continue;
+  const n=st.shown[k];
+  html+=`<section aria-labelledby="h-${k}"><h2 class="sec" id="h-${k}">${SEC[k]} <span class="n">${g.length}</span></h2><ul class="grid">${g.slice(0,n).map(it=>k==='lab'?labCard(it):vidCard(it)).join('')}</ul>${g.length>n?`<button type="button" class="btn ghost more" data-more="${k}">Show ${Math.min(PAGE,g.length-n)} more ${k==='lab'?'interactives':'videos'}</button>`:''}</section>`;}
+ if(!list.length)html=`<p class="empty">Nothing matches yet. <button type="button" class="clear" data-clear="1">Clear the filters</button></p>`;
+ $('results').innerHTML=html;
+ const bits=[];if(groups.lab.length)bits.push(groups.lab.length+' interactive'+(groups.lab.length===1?'':'s'));if(groups.demo.length)bits.push(groups.demo.length+' demo video'+(groups.demo.length===1?'':'s'));if(groups.lecture.length)bits.push(groups.lecture.length+' lecture video'+(groups.lecture.length===1?'':'s'));
+ $('count').innerHTML=(bits.length?'Showing '+bits.join(', '):'No matches')+((st.q||st.course!=='all'||st.type!=='all')?' <button type="button" class="clear" data-clear="1">Clear filters</button>':'');
+ syncUrl();window.dispatchEvent(new Event('resize'));}
+function syncUrl(){try{const p=new URLSearchParams(location.search);
+ const set=(k,v)=>v?p.set(k,v):p.delete(k);set('course',st.course==='all'?'':st.course);set('type',st.type==='all'?'':st.type);set('ch',st.course==='all'?'':st.ch);set('q',st.q);
+ const s=p.toString();history.replaceState(null,'',location.pathname+(s?'?'+s:'')+location.hash);}catch(e){}}
+function chips(){
+ $('courseChips').innerHTML=[['all','All']].concat(COURSES.map(c=>[c,c])).map(([v,l])=>`<button type="button" class="chip" data-course="${v}" aria-pressed="${st.course===v}">${v==='all'?l:'CHEM '+l}</button>`).join('');
+ $('typeChips').innerHTML=TYPES.map(([v,l])=>`<button type="button" class="chip" data-type="${v}" aria-pressed="${st.type===v}">${l}</button>`).join('');
+ const row=$('chRow');row.hidden=st.course==='all';
+ if(st.course!=='all'){const used=new Set();for(const it of ALL)for(const n of ((it.ch&&it.ch[st.course])||[]))used.add(n);
+  const opts=(CH[st.course]||[]).filter(x=>used.has(x[0]));if(st.ch&&!opts.some(x=>x[0]===st.ch))st.ch='';
+  $('ch').innerHTML=`<option value="">All chapters</option>`+opts.map(x=>`<option value="${esc(x[0])}"${x[0]===st.ch?' selected':''}>${esc(x[1]+' · '+x[2])}</option>`).join('');}}
+function resetShown(){st.shown={lab:PAGE,demo:PAGE,lecture:PAGE};}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.course){st.course=b.dataset.course;st.ch='';resetShown();chips();render();return;}
+ if(b.dataset.type){st.type=b.dataset.type;resetShown();chips();render();return;}
+ if(b.dataset.more){const k=b.dataset.more;const first=st.shown[k];st.shown[k]+=PAGE;render();
+  const sec=document.querySelector(`#h-${k}`).parentNode;const li=sec.querySelectorAll('.grid>li')[first];const f=li&&li.querySelector('a,button');if(f)f.focus();return;}
+ if(b.dataset.clear){st.course='all';st.type='all';st.ch='';st.q='';$('q').value='';resetShown();chips();render();$('q').focus();return;}
+ if(b.classList.contains('playbtn')){play(b.closest('.card'),b.dataset.yt,+b.dataset.start);return;}
+ if(b.dataset.t!=null){const card=b.closest('.card');const it=ALL.find(x=>x.id===card.dataset.id);if(it)play(card,it.yt,+b.dataset.t);}
+});
+$('ch').addEventListener('change',e=>{st.ch=e.target.value;resetShown();render();});
+let qt=0;$('q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{st.q=e.target.value.trim();resetShown();render();},150);});
+$('q').value=st.q;chips();render();
+window.DEMO_LIBRARY={count:()=>({all:ALL.length,lab:ALL.filter(x=>x.type==='lab').length,demo:ALL.filter(x=>x.type==='demo').length,lecture:ALL.filter(x=>x.type==='lecture').length})};
+})();
+</script>
+<script src="embed.js" defer></script>
+</body></html>
