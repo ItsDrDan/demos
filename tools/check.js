@@ -34,10 +34,10 @@ for (const it of all) {
   }
   for (const c of Object.keys(it.ch || {})) ok(it.courses.includes(c), it.id + ': chapter for unlisted course ' + c);
   if (it.type === 'lab') {
-    ok(/^https:\/\/itsdrdan\.github\.io\/[A-Za-z0-9]+\/|^labs\/[a-z-]+\/$/.test(it.url), it.id + ': url ' + it.url);
+    ok(/^https:\/\/itsdrdan\.github\.io\/[A-Za-z0-9]+\/|^(labs|projector)\/[a-z-]+\/$/.test(it.url), it.id + ': url ' + it.url);
     ok(it.what && it.what.length <= 120 && !/\n/.test(it.what), it.id + ': what should be one short line (' + (it.what || '').length + ')');
     ok(it.src, it.id + ': src note');
-    if (/^labs\//.test(it.url)) ok(fs.existsSync(path.join(ROOT, it.url, 'index.html')), it.id + ': local lab missing');
+    if (/^(labs|projector)\//.test(it.url)) ok(fs.existsSync(path.join(ROOT, it.url, 'index.html')), it.id + ': local lab missing');
   } else {
     ok(/^[A-Za-z0-9_-]{11}$/.test(it.yt), it.id + ': yt id');
   }
@@ -135,6 +135,33 @@ async function run() {
       await p.addScriptTag({ content: axeSrc });
       const ax2 = await p.evaluate(async () => (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.map(v => v.id));
       ok(ax2.length === 0, name + ': axe (filtered view): ' + ax2.join(','));
+      ok(errs.length === 0, name + ': console errors: ' + errs.join(' | '));
+      await c.close();
+    }
+    // teacher projector page (Equilibrium Park engine, no questions)
+    for (const [name, opts] of [['projector 1920', { viewport: { width: 1920, height: 1080 } }], ['projector 1280', { viewport: { width: 1280, height: 800 } }], ['projector phone', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
+      const { c, p, errs } = await page(browser, opts);
+      await p.goto(base + 'projector/equilibrium/?sys=fescn'); await p.waitForTimeout(1500);
+      const s0 = await p.evaluate(() => PROJECTOR.state());
+      ok(s0.sys === 'fescn' && s0.parts > 50 && s0.t > 0.5, name + ': lab starts and runs (' + JSON.stringify(s0) + ')');
+      ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), name + ': no horizontal scroll');
+      ok(await p.locator('button.big').evaluateAll(bs => bs.filter(b => b.offsetParent).every(b => b.getBoundingClientRect().height >= 50)), name + ': every control is at least 50 px tall');
+      ok(await p.locator('text=/Check|Hint|Question/').count() === 0, name + ': no questions on the page');
+      const tap = s => opts.hasTouch ? p.locator(s).first().tap() : p.locator(s).first().click();
+      const before = s0.n.FeSCN;
+      await tap('[data-s="addR"]'); await p.waitForTimeout(4000);
+      const s1 = await p.evaluate(() => PROJECTOR.state());
+      ok(s1.n.Fe > s0.n.Fe && s1.n.FeSCN > before, name + ': adding Fe³⁺ makes more FeSCN²⁺ (' + before + ' → ' + s1.n.FeSCN + ')');
+      await tap('#pauseBtn'); const tp = (await p.evaluate(() => PROJECTOR.state())).t; await p.waitForTimeout(600);
+      ok((await p.evaluate(() => PROJECTOR.state())).t === tp, name + ': Pause stops the clock');
+      await tap('#pauseBtn');
+      await tap('[data-sys="no2"]'); await p.waitForTimeout(300);
+      ok(await p.locator('#vWrap').isVisible() && new URL(p.url()).searchParams.get('sys') === 'no2', name + ': switching to NO₂ shows the volume slider and updates the URL');
+      await p.locator('#tSl').fill('90'); await p.waitForTimeout(200);
+      ok(Math.round((await p.evaluate(() => PROJECTOR.state())).T) === 363, name + ': temperature slider sets 90 °C');
+      await p.addScriptTag({ content: axeSrc });
+      const ax = await p.evaluate(async () => (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.map(v => v.id + ' ' + v.nodes[0].target.join(' ')));
+      ok(ax.length === 0, name + ': axe: ' + ax.join(' | '));
       ok(errs.length === 0, name + ': console errors: ' + errs.join(' | '));
       await c.close();
     }
