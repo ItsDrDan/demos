@@ -14,14 +14,18 @@ const ok = (c, m) => { checks++; if (!c) { fails++; console.log('FAIL:', m); } }
 
 // ---------- 1. data ----------
 const ctx = { window: {} }; vm.createContext(ctx);
-for (const f of ['interactives.js', 'demo-videos.js', 'lectures.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, 'data', f), 'utf8'), ctx);
+for (const f of ['topics.js', 'interactives.js', 'demo-videos.js', 'lectures.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, 'data', f), 'utf8'), ctx);
 const W = ctx.window, CH = W.DEMO_CHAPTERS;
 const all = [].concat(W.DEMO_ITEMS, W.DEMO_VIDEOS, W.DEMO_LECTURES);
+const TOPIC_IDS = new Set(W.DEMO_TOPICS.map(t => t[0]));
+for (const v of Object.values(W.DEMO_TOPIC_MAP)) ok(TOPIC_IDS.has(v), 'topic map uses unknown topic ' + v);
+for (const c of Object.keys(CH)) for (const r of CH[c]) ok(W.DEMO_TOPIC_MAP[c + ':' + r[0]], 'chapter has no topic: ' + c + ':' + r[0]);
 const ids = new Set();
 for (const it of all) {
   ok(!ids.has(it.id), 'duplicate id ' + it.id); ids.add(it.id);
   ok(['lab', 'demo', 'lecture'].includes(it.type), it.id + ': bad type');
   ok(it.title && it.title.length < 140, it.id + ': title');
+  if (it.topic) ok(TOPIC_IDS.has(it.topic), it.id + ': unknown topic ' + it.topic);
   ok(Array.isArray(it.courses) && it.courses.length && it.courses.every(c => CH[c]), it.id + ': courses');
   for (const c of it.courses) {
     const list = (it.ch || {})[c] || [];
@@ -71,7 +75,10 @@ async function run() {
       await p.goto(base);
       const counts = await p.evaluate(() => window.DEMO_LIBRARY.count());
       ok(counts.lab === W.DEMO_ITEMS.length && counts.demo === W.DEMO_VIDEOS.length && counts.lecture === W.DEMO_LECTURES.length, name + ': counts');
-      ok(await p.locator('#results .card').count() === 24 * 3, name + ': first page shows 24 of each type');
+      const first = await p.locator('#results .card').count();
+      const perGroup = await p.$$eval('.tgroup', gs => gs.map(g => g.querySelectorAll('.grid>li').length));
+      ok(perGroup.length > 10 && perGroup.every(n => n >= 1 && n <= 6), name + ': topic groups show at most 6 cards (' + perGroup.join(',') + ')');
+      ok((await p.locator('h3.tsub').allTextContents()).some(t => /Gases/.test(t)), name + ': topic headings present');
       ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), name + ': no horizontal scroll');
       // axe on the default view
       await p.addScriptTag({ content: axeSrc });
@@ -85,7 +92,7 @@ async function run() {
       for (const c of ['3A', '1A', '1B', '3B']) { await tap(`[data-course="${c}"]`); ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), name + ': no horizontal scroll with ' + c + ' chapter menu'); }
       await tap('[data-course="3A"]');
       await p.selectOption('#ch', '8');
-      const titles = await p.locator('#results .card h3').allTextContents();
+      const titles = await p.locator('#results .card h4').allTextContents();
       ok(titles.includes('Piston Lab') && !titles.includes('Ride Line'), name + ': 3A Ch 8 shows gas labs only');
       const href = await p.locator('#results .card.lab a.open').first().getAttribute('href');
       ok(/course=3A/.test(href), name + ': game link carries course=3A (' + href + ')');
@@ -94,14 +101,23 @@ async function run() {
       // search
       await tap('[data-course="all"]'); await tap('[data-type="all"]');
       await p.fill('#q', 'osmosis'); await p.waitForTimeout(300);
-      ok((await p.locator('#results .card h3').allTextContents()).some(t => /Cell Lab/.test(t)), name + ': search osmosis finds Cell Lab');
+      ok((await p.locator('#results .card h4').allTextContents()).some(t => /Cell Lab/.test(t)), name + ': search osmosis finds Cell Lab');
       await p.fill('#q', 'zzqqxx'); await p.waitForTimeout(300);
       ok(await p.locator('.empty').isVisible(), name + ': empty state');
       await tap('.empty [data-clear]');
-      ok(await p.locator('#results .card').count() === 72, name + ': clear filters restores');
+      ok(await p.locator('#results .card').count() === first, name + ': clear filters restores');
       // show more
-      await tap('[data-more="lecture"]');
-      ok(await p.locator('#results .card.lecture').count() === 48, name + ': show more lectures');
+      const before = await p.locator('#results .card.lecture').count();
+      const key = await p.locator('[data-more^="lecture|"]').first().getAttribute('data-more');
+      await tap(`[data-more="${key}"]`);
+      ok(await p.locator('#results .card.lecture').count() > before, name + ': show more in one lecture topic (' + key + ')');
+      // topic filter
+      await p.selectOption('#tp', 'bonding');
+      const bt = await p.locator('#results .card h4').allTextContents();
+      ok(bt.includes('Hybrid Mixer') && bt.includes('MO Diagram Builder') && !bt.includes('Piston Lab'), name + ': Topic = bonding shows the bonding labs');
+      ok(new URL(p.url()).searchParams.get('topic') === 'bonding', name + ': topic in URL');
+      ok((await p.locator('#results .card.demo h4').allTextContents()).some(t => /Liquid oxygen/.test(t)), name + ': bonding topic includes the O2 magnet demo video');
+      await p.selectOption('#tp', '');
       // play a video
       await tap('[data-type="demo"]');
       await tap('#results .card.demo .playbtn');
@@ -115,7 +131,7 @@ async function run() {
       ok(/start=[1-9]/.test(s2 || ''), name + ': jump to a moment sets start');
       // deep link into the page
       await p.goto(base + '?course=3B&type=lab&q=enzyme');
-      ok((await p.locator('#results .card h3').allTextContents()).every(t => /Enzyme/i.test(t)) && await p.locator('[data-course="3B"]').getAttribute('aria-pressed') === 'true', name + ': URL state restores filters');
+      ok((await p.locator('#results .card h4').allTextContents()).every(t => /Enzyme/i.test(t)) && await p.locator('[data-course="3B"]').getAttribute('aria-pressed') === 'true', name + ': URL state restores filters');
       await p.addScriptTag({ content: axeSrc });
       const ax2 = await p.evaluate(async () => (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations.map(v => v.id));
       ok(ax2.length === 0, name + ': axe (filtered view): ' + ax2.join(','));

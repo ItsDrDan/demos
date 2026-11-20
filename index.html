@@ -45,13 +45,15 @@ select{min-height:44px;border:2px solid #cfdbe6;border-radius:12px;padding:6px 1
 .clear{border:0;background:none;color:var(--blue);font-weight:900;text-decoration:underline;cursor:pointer;min-height:44px;padding:0 6px}
 /* sections + cards */
 h2.sec{font-family:Fredoka,Nunito,system-ui,sans-serif;font-size:22px;margin:22px 4px 10px;display:flex;align-items:center;gap:10px}
+h3.tsub{font-family:Fredoka,Nunito,system-ui,sans-serif;font-weight:600;font-size:18px;margin:16px 4px 8px;color:#2c3d5c;display:flex;align-items:center;gap:8px;border-left:5px solid #b7c7e6;padding-left:10px}
+h3.tsub .n{font-size:13px;font-weight:800;color:var(--muted);font-family:Nunito,system-ui,sans-serif}
 h2.sec .n{font-size:14px;font-weight:800;color:var(--muted);font-family:Nunito,system-ui,sans-serif}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;list-style:none;margin:0;padding:0}
 .card{background:var(--card);border:1px solid #dfe8ef;border-radius:22px;box-shadow:0 8px 22px #2a5a7a10;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .card.lab{border-top:6px solid var(--lab-line)}.card.lecture{border-top:6px solid var(--lec-line)}.card.demo{border-top:6px solid var(--rx-line)}
 .top{display:flex;gap:10px;align-items:flex-start}
 .ico{width:52px;height:52px;border-radius:14px;flex:0 0 52px;object-fit:cover;background:#f2f4f8}
-.card h3{margin:0;font-size:17px;line-height:1.25;font-family:Fredoka,Nunito,system-ui,sans-serif;font-weight:600;overflow-wrap:anywhere}
+.card h4{margin:0;font-size:17px;line-height:1.25;font-family:Fredoka,Nunito,system-ui,sans-serif;font-weight:600;overflow-wrap:anywhere}
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .tag{font-size:12.5px;font-weight:900;border-radius:999px;padding:2px 9px;border:1px solid transparent}
 .t-lab{background:var(--lab-bg);color:var(--lab);border-color:var(--lab-line)}.t-lecture{background:var(--lec-bg);color:var(--lec);border-color:var(--lec-line)}.t-demo{background:var(--rx-bg);color:var(--rx);border-color:var(--rx-line)}
@@ -112,7 +114,7 @@ footer p{margin:4px 0}
 </header>
 
 <details class="howto"><summary>How to use the Demo Library</summary><ul>
- <li>Pick your <b>course</b>, then a <b>chapter</b>, or search a topic like “osmosis”.</li>
+ <li>Pick your <b>course</b> and a <b>topic</b> or <b>chapter</b>, or search a word like “osmosis”.</li>
  <li><b>Open demo</b> starts the lab in a new tab.</li>
  <li><b>Play</b> starts a video right on the card.</li>
  <li>Teachers: the address bar keeps your filters, so you can share or post the link.</li>
@@ -122,6 +124,7 @@ footer p{margin:4px 0}
  <div class="row"><label class="lbl" for="q">Search</label><input id="q" class="search" type="search" placeholder="Try osmosis, gas laws, enzymes…" autocomplete="off"></div>
  <div class="row" role="group" aria-labelledby="lc"><span class="lbl" id="lc">Course</span><span id="courseChips" class="row"></span></div>
  <div class="row" role="group" aria-labelledby="lt"><span class="lbl" id="lt">Show</span><span id="typeChips" class="row"></span></div>
+ <div class="row"><label class="lbl" for="tp">Topic</label><select id="tp"></select></div>
  <div class="row" id="chRow" hidden><label class="lbl" for="ch">Chapter</label><select id="ch"></select></div>
 </section>
 
@@ -134,6 +137,7 @@ footer p{margin:4px 0}
 </footer>
 </div>
 
+<script src="data/topics.js"></script>
 <script src="data/interactives.js"></script>
 <script src="data/demo-videos.js"></script>
 <script src="data/lectures.js"></script>
@@ -148,23 +152,28 @@ const TYPES=[['all','Everything'],['lab','Interactives'],['demo','Demo videos'],
 const TYPE_TAG={lab:'Interactive',demo:'Demo video',lecture:'Lecture video'};
 const SEC={lab:'Interactives and simulations',demo:'Demo videos from class',lecture:'Dr. Dan’s lecture videos'};
 const ALL=[].concat(window.DEMO_ITEMS||[],window.DEMO_VIDEOS||[],window.DEMO_LECTURES||[]);
-const PAGE=24;
-const st={course:'all',type:'all',ch:'',q:'',shown:{lab:PAGE,demo:PAGE,lecture:PAGE}};
+const TOP=window.DEMO_TOPICS||[],TMAP=window.DEMO_TOPIC_MAP||{};
+const PER=6,PER_ONE=48; // cards per topic before "Show more" (more when one topic is picked)
+const st={course:'all',type:'all',ch:'',q:'',topic:'',shown:{}};
 // URL state
 try{const p=new URLSearchParams(location.search);
  const c=(p.get('course')||'').toUpperCase().replace('CHEM','').trim();if(COURSES.includes(c))st.course=c;
  const t=(p.get('type')||'').toLowerCase();if(TYPES.some(x=>x[0]===t))st.type=t;
- st.ch=p.get('ch')||'';st.q=p.get('q')||'';}catch(e){}
+ st.ch=p.get('ch')||'';st.q=p.get('q')||'';const tp=p.get('topic')||'';if(TOP.some(x=>x[0]===tp))st.topic=tp;}catch(e){}
 function chName(c,n){const r=(CH[c]||[]).find(x=>x[0]===String(n));return r?(r[1]+' · '+r[2]):'';}
 function chOrder(c,n){const i=(CH[c]||[]).findIndex(x=>x[0]===String(n));return i<0?999:i;}
 function fmtT(s){s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0');}
 const norm=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[₀-₉]/g,d=>'0123456789'['₀₁₂₃₄₅₆₇₈₉'.indexOf(d)]);
+function topicOf(it){if(it.topic)return it.topic;for(const c of it.courses||[])for(const n of (it.ch&&it.ch[c])||[]){const t=TMAP[c+':'+n];if(t)return t;}return 'matter';}
+const topicName=id=>(TOP.find(x=>x[0]===id)||[id,id])[1];
 for(const it of ALL){
+ it._topic=topicOf(it);
  const chs=[];for(const c of it.courses||[])for(const n of (it.ch&&it.ch[c])||[])chs.push(c+' '+chName(c,n));
- it._hay=norm([it.title,it.what,it.game,(it.tags||[]).join(' '),chs.join(' '),(it.moments||[]).map(m=>m[1]).join(' '),it.channel,it.from].join(' '));
+ it._hay=norm([topicName(it._topic),it.title,it.what,it.game,(it.tags||[]).join(' '),chs.join(' '),(it.moments||[]).map(m=>m[1]).join(' '),it.channel,it.from].join(' '));
 }
 function matches(it){
  if(st.type!=='all'&&it.type!==st.type)return false;
+ if(st.topic&&it._topic!==st.topic)return false;
  if(st.course!=='all'){if(!(it.courses||[]).includes(st.course))return false;
   if(st.ch&&!((it.ch&&it.ch[st.course])||[]).includes(st.ch))return false;}
  if(st.q){const words=norm(st.q).split(/\s+/).filter(Boolean);if(!words.every(w=>it._hay.includes(w)))return false;}
@@ -181,7 +190,7 @@ function labUrl(it){
  try{const u=new URL(it.url,location.href);u.searchParams.set('course',c);return u.href;}catch(e){return it.url;}}
 function labCard(it){
  const ico=it.icon?`<img class="ico" src="${esc(it.icon)}" alt="" loading="lazy" width="52" height="52">`:'';
- return `<li class="card lab"><div class="top">${ico}<div><h3>${esc(it.title)}</h3><div class="tags"><span class="tag t-lab">${TYPE_TAG.lab}</span>${courseTags(it)}</div></div></div>
+ return `<li class="card lab"><div class="top">${ico}<div><h4>${esc(it.title)}</h4><div class="tags"><span class="tag t-lab">${TYPE_TAG.lab}</span>${courseTags(it)}</div></div></div>
  ${chapLine(it)}<p class="what">${esc(it.what)}</p>${it.game?`<p class="src">In ${esc(it.game)}${it.note?' · '+esc(it.note):''}</p>`:''}
  <div class="act"><a class="btn open" href="${esc(labUrl(it))}" target="_blank" rel="noopener" aria-label="Open demo: ${esc(it.title)} (opens in a new tab)">Open demo ↗</a></div></li>`;}
 function vidCard(it){
@@ -189,10 +198,10 @@ function vidCard(it){
  const momHtml=mom.length?`<details class="moments"><summary>Jump to a part (${mom.length+1})</summary><ul>${[[0,'Start']].concat(mom).map(m=>`<li><button type="button" data-t="${m[0]}"><span class="ts">${fmtT(m[0])}</span><span>${esc(m[1])}</span></button></li>`).join('')}</ul></details>`:'';
  const src=t==='demo'?`<p class="src">Video by ${esc(it.channel||'a YouTube creator')} · from ${esc(it.from)}</p>`:'';
  return `<li class="card ${t}" data-id="${esc(it.id)}"><div class="vid"><button type="button" class="playbtn" data-yt="${esc(it.yt)}" data-start="${it.start||0}" ><img src="https://i.ytimg.com/vi/${esc(it.yt)}/mqdefault.jpg" alt="" loading="lazy" width="320" height="180"><span class="play"><span aria-hidden="true">▶ </span>Play<span class="sr"> video: ${esc(it.title)}</span></span>${it.dur?`<span class="len" aria-hidden="true">${fmtT(it.dur)}</span>`:''}</button></div>
- <h3>${esc(it.title)}</h3><div class="tags"><span class="tag t-${t}">${TYPE_TAG[t]}</span>${courseTags(it)}</div>
+ <h4>${esc(it.title)}</h4><div class="tags"><span class="tag t-${t}">${TYPE_TAG[t]}</span>${courseTags(it)}</div>
  ${chapLine(it)}${it.what?`<p class="what">${esc(it.what)}</p>`:''}${src}${momHtml}</li>`;}
 function play(card,yt,start){
- const box=card.querySelector('.vid');const title=card.querySelector('h3').textContent;
+ const box=card.querySelector('.vid');const title=card.querySelector('h4').textContent;
  box.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(yt)}?autoplay=1&rel=0&start=${Math.max(0,start|0)}" title="Video: ${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
  const f=box.querySelector('iframe');try{f.focus();}catch(e){}
  window.dispatchEvent(new Event('resize'));}
@@ -201,35 +210,43 @@ function render(){
  const groups={lab:[],demo:[],lecture:[]};for(const it of list)groups[it.type].push(it);
  for(const k in groups)groups[k].sort((a,b)=>sortKey(a)-sortKey(b));
  let html='';
+ const per=st.topic||st.q?PER_ONE:PER;
  for(const k of ['lab','demo','lecture']){const g=groups[k];if(!g.length)continue;
-  const n=st.shown[k];
-  html+=`<section aria-labelledby="h-${k}"><h2 class="sec" id="h-${k}">${SEC[k]} <span class="n">${g.length}</span></h2><ul class="grid">${g.slice(0,n).map(it=>k==='lab'?labCard(it):vidCard(it)).join('')}</ul>${g.length>n?`<button type="button" class="btn ghost more" data-more="${k}">Show ${Math.min(PAGE,g.length-n)} more ${k==='lab'?'interactives':'videos'}</button>`:''}</section>`;}
+  html+=`<section aria-labelledby="h-${k}"><h2 class="sec" id="h-${k}">${SEC[k]} <span class="n">${g.length}</span></h2>`;
+  for(const [tid,tname] of TOP){const tg=g.filter(it=>it._topic===tid);if(!tg.length)continue;
+   const key=k+'|'+tid,n=st.shown[key]||per;
+   html+=`<div class="tgroup"><h3 class="tsub" id="h-${k}-${tid}">${esc(tname)} <span class="n">${tg.length}</span></h3><ul class="grid">${tg.slice(0,n).map(it=>k==='lab'?labCard(it):vidCard(it)).join('')}</ul>${tg.length>n?`<button type="button" class="btn ghost more" data-more="${key}">Show ${Math.min(per*2,tg.length-n)} more: ${esc(tname)}</button>`:''}</div>`;}
+  html+=`</section>`;}
  if(!list.length)html=`<p class="empty">Nothing matches yet. <button type="button" class="clear" data-clear="1">Clear the filters</button></p>`;
  $('results').innerHTML=html;
  const bits=[];if(groups.lab.length)bits.push(groups.lab.length+' interactive'+(groups.lab.length===1?'':'s'));if(groups.demo.length)bits.push(groups.demo.length+' demo video'+(groups.demo.length===1?'':'s'));if(groups.lecture.length)bits.push(groups.lecture.length+' lecture video'+(groups.lecture.length===1?'':'s'));
- $('count').innerHTML=(bits.length?'Showing '+bits.join(', '):'No matches')+((st.q||st.course!=='all'||st.type!=='all')?' <button type="button" class="clear" data-clear="1">Clear filters</button>':'');
+ $('count').innerHTML=(bits.length?'Showing '+bits.join(', '):'No matches')+((st.q||st.topic||st.course!=='all'||st.type!=='all')?' <button type="button" class="clear" data-clear="1">Clear filters</button>':'');
  syncUrl();window.dispatchEvent(new Event('resize'));}
 function syncUrl(){try{const p=new URLSearchParams(location.search);
- const set=(k,v)=>v?p.set(k,v):p.delete(k);set('course',st.course==='all'?'':st.course);set('type',st.type==='all'?'':st.type);set('ch',st.course==='all'?'':st.ch);set('q',st.q);
+ const set=(k,v)=>v?p.set(k,v):p.delete(k);set('course',st.course==='all'?'':st.course);set('type',st.type==='all'?'':st.type);set('ch',st.course==='all'?'':st.ch);set('q',st.q);set('topic',st.topic);
  const s=p.toString();history.replaceState(null,'',location.pathname+(s?'?'+s:'')+location.hash);}catch(e){}}
 function chips(){
  $('courseChips').innerHTML=[['all','All']].concat(COURSES.map(c=>[c,c])).map(([v,l])=>`<button type="button" class="chip" data-course="${v}" aria-pressed="${st.course===v}">${v==='all'?l:'CHEM '+l}</button>`).join('');
  $('typeChips').innerHTML=TYPES.map(([v,l])=>`<button type="button" class="chip" data-type="${v}" aria-pressed="${st.type===v}">${l}</button>`).join('');
+ const used=new Set(ALL.filter(it=>(st.type==='all'||it.type===st.type)&&(st.course==='all'||(it.courses||[]).includes(st.course))).map(it=>it._topic));
+ if(st.topic&&!used.has(st.topic))st.topic='';
+ $('tp').innerHTML=`<option value="">All topics</option>`+TOP.filter(x=>used.has(x[0])).map(x=>`<option value="${x[0]}"${x[0]===st.topic?' selected':''}>${esc(x[1])}</option>`).join('');
  const row=$('chRow');row.hidden=st.course==='all';
  if(st.course!=='all'){const used=new Set();for(const it of ALL)for(const n of ((it.ch&&it.ch[st.course])||[]))used.add(n);
   const opts=(CH[st.course]||[]).filter(x=>used.has(x[0]));if(st.ch&&!opts.some(x=>x[0]===st.ch))st.ch='';
   $('ch').innerHTML=`<option value="">All chapters</option>`+opts.map(x=>`<option value="${esc(x[0])}"${x[0]===st.ch?' selected':''}>${esc(x[1]+' · '+x[2])}</option>`).join('');}}
-function resetShown(){st.shown={lab:PAGE,demo:PAGE,lecture:PAGE};}
+function resetShown(){st.shown={};}
 document.addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.course){st.course=b.dataset.course;st.ch='';resetShown();chips();render();return;}
  if(b.dataset.type){st.type=b.dataset.type;resetShown();chips();render();return;}
- if(b.dataset.more){const k=b.dataset.more;const first=st.shown[k];st.shown[k]+=PAGE;render();
-  const sec=document.querySelector(`#h-${k}`).parentNode;const li=sec.querySelectorAll('.grid>li')[first];const f=li&&li.querySelector('a,button');if(f)f.focus();return;}
- if(b.dataset.clear){st.course='all';st.type='all';st.ch='';st.q='';$('q').value='';resetShown();chips();render();$('q').focus();return;}
+ if(b.dataset.more){const key=b.dataset.more,per=st.topic||st.q?PER_ONE:PER,first=st.shown[key]||per;st.shown[key]=first+per*2;render();
+  const [k,tid]=key.split('|');const grp=document.getElementById('h-'+k+'-'+tid);const li=grp&&grp.parentNode.querySelectorAll('.grid>li')[first];const f=li&&li.querySelector('a,button');if(f)f.focus();return;}
+ if(b.dataset.clear){st.course='all';st.type='all';st.ch='';st.q='';st.topic='';$('q').value='';resetShown();chips();render();$('q').focus();return;}
  if(b.classList.contains('playbtn')){play(b.closest('.card'),b.dataset.yt,+b.dataset.start);return;}
  if(b.dataset.t!=null){const card=b.closest('.card');const it=ALL.find(x=>x.id===card.dataset.id);if(it)play(card,it.yt,+b.dataset.t);}
 });
+$('tp').addEventListener('change',e=>{st.topic=e.target.value;resetShown();render();});
 $('ch').addEventListener('change',e=>{st.ch=e.target.value;resetShown();render();});
 let qt=0;$('q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{st.q=e.target.value.trim();resetShown();render();},150);});
 $('q').value=st.q;chips();render();
