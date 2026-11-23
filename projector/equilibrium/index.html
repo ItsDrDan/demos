@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Equilibrium Projector • Demo Library • ItsDrDan</title>
-<meta name="description" content="Teacher projector mode: a big Equilibrium Park particle lab with no questions, large particles and big controls for live lecture demos.">
+<meta name="description" content="Teacher projector mode: the Equilibrium Park ride line and particle labs with no questions, large particles and big controls for live lecture demos.">
 <link rel="icon" href="https://itsdrdan.github.io/games/assets/logo-32.png">
 <!-- Built by tools/build_projector.js from tools/projector/equilibrium-src.html and the Equilibrium Park engine
      (ItsDrDan/equilibrium tools/engine-src.js). Edit the source, not index.html. -->
@@ -65,11 +65,11 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;background:#fafbf
   <div class="card stage"><canvas id="cv" width="960" height="500" role="img" aria-label="Particle view of the reaction"></canvas><div class="stamp" id="stamp" aria-hidden="true"></div></div>
   <div class="side">
    <div class="status card" id="status" role="status" aria-live="polite">⚖️ Balanced</div>
-   <div class="card rates"><h2>Reaction rates</h2>
-    <div class="bar"><span>Forward</span><div class="track"><div class="fill" id="fF" style="background:var(--fwd)"></div></div><b id="fN">0</b></div>
-    <div class="bar"><span>Reverse</span><div class="track"><div class="fill" id="fR" style="background:var(--rev)"></div></div><b id="rN">0</b></div></div>
+   <div class="card rates"><h2 id="ratesH">Reaction rates</h2>
+    <div class="bar"><span id="fL">Forward</span><div class="track"><div class="fill" id="fF" style="background:var(--fwd)"></div></div><b id="fN">0</b></div>
+    <div class="bar"><span id="rL">Reverse</span><div class="track"><div class="fill" id="fR" style="background:var(--rev)"></div></div><b id="rN">0</b></div></div>
    <div class="card counts" id="counts"><h2>Particles</h2></div>
-   <div class="card graph"><h2>Amount over time (last 30 s)</h2><canvas id="gr" width="600" height="240" role="img" aria-label="Graph of the amount of each substance over the last 30 seconds"></canvas></div>
+   <div class="card graph"><h2 id="grH">Amount over time (last 30 s)</h2><canvas id="gr" width="600" height="240" role="img" aria-label="Graph of the amount of each substance over the last 30 seconds"></canvas></div>
   </div>
  </div>
  <div class="ctrls" id="stress"></div>
@@ -80,13 +80,13 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;background:#fafbf
  <div class="ctrls">
   <button type="button" class="big" id="catBtn" aria-pressed="false">⚡ Catalyst</button>
   <button type="button" class="big" id="pauseBtn" aria-pressed="false">⏸ Pause</button>
-  <div class="speed" role="group" aria-label="Speed"><button type="button" class="big" data-sp="0.5" aria-pressed="false">½×</button><button type="button" class="big" data-sp="1" aria-pressed="true">1×</button><button type="button" class="big" data-sp="2" aria-pressed="false">2×</button></div>
+  <div class="speed" role="group" aria-label="Speed"><button type="button" class="big" data-sp="0.25" aria-pressed="false" aria-label="Quarter speed">🐢 ¼×</button><button type="button" class="big" data-sp="0.5" aria-pressed="false">½×</button><button type="button" class="big" data-sp="1" aria-pressed="true">1×</button><button type="button" class="big" data-sp="2" aria-pressed="false">2×</button></div>
   <button type="button" class="big" data-r="R">↺ Reactants only</button>
   <button type="button" class="big" data-r="P">↺ Products only</button>
   <button type="button" class="big" data-r="E">↺ Back to balance</button>
   <button type="button" class="big" id="fsBtn">⛶ Full screen</button>
  </div>
- <p class="keys">Keys: Space pause · 1–4 the change buttons · ← → temperature · R back to balance · F full screen</p>
+ <p class="keys" id="keys">Keys: Space pause · 1–4 the change buttons · ← → temperature · R back to balance · F full screen</p>
 </main>
 <script>
 /*EQ-ENGINE-START*/
@@ -105,7 +105,7 @@ const SYS={
   units:{N2O4:1,NO2:0.5},total:60,                       // 60 N₂O₄-equivalents
   tint:{sp:'NO2',rgb:[160,72,28],k:0.0085,max:0.62},tintName:'brown color',
   look:'brown NO₂ gas; N₂O₄ is nearly colorless',
-  stress:[['addR','➕ N₂O₄',{N2O4:15}],['addP','➕ NO₂',{NO2:30}],['remP','➖ NO₂',{NO2:-0.5}]]},
+  stress:[['addR','➕ N₂O₄',{N2O4:15}],['remR','➖ N₂O₄',{N2O4:-0.5}],['addP','➕ NO₂',{NO2:30}],['remP','➖ NO₂',{NO2:-0.5}]]},
  hi:{real:'🏭 Hydrogen iodide is made for medicines and disinfectants; the violet I₂ shows how far it has reacted.',title:'H₂ + I₂ ⇌ 2 HI',gas:true,heat:true,dH:-9,
   eq:[[1,'H2','g'],[1,'I2','g']],eqP:[[2,'HI','g']],
   sp:{H2:{l:'H₂',c:'#ffffff',e:'#7d8a94',r:5.5},I2:{l:'I₂',c:'#6b3fa0',e:'#3e1f63',r:9},HI:{l:'HI',c:'#d8c8ec',e:'#7a62a0',r:7}},
@@ -113,7 +113,7 @@ const SYS={
   units:{H2:1,I2:1,HI:1},total:null,start:{H2:40,I2:40,HI:0},
   tint:{sp:'I2',rgb:[110,50,160],k:0.012,max:0.6},tintName:'purple color',
   look:'violet I₂ vapor; H₂ and HI are colorless',
-  stress:[['addR','➕ H₂',{H2:20}],['addR2','➕ I₂',{I2:20}],['addP','➕ HI',{HI:30}]]},
+  stress:[['addR','➕ H₂',{H2:20}],['remR','➖ H₂',{H2:-0.5}],['addR2','➕ I₂',{I2:20}],['remR2','➖ I₂',{I2:-0.5}],['addP','➕ HI',{HI:30}],['remP','➖ HI',{HI:-0.5}]]},
  fescn:{real:'🧪 A classic lab test: the blood-red color reveals Fe³⁺ (iron) or SCN⁻ in a sample.',title:'Fe³⁺ + SCN⁻ ⇌ FeSCN²⁺ (blood-red)',gas:false,heat:true,dH:-1,
   eq:[[1,'Fe','aq'],[1,'SCN','aq']],eqP:[[1,'FeSCN','aq']],
   sp:{Fe:{l:'Fe³⁺',c:'#f0c64a',e:'#a7801a',r:7.5},SCN:{l:'SCN⁻',c:'#cfd7dd',e:'#6f7b84',r:6},FeSCN:{l:'FeSCN²⁺',c:'#b3122a',e:'#6b0716',r:9.5}},
@@ -121,7 +121,7 @@ const SYS={
   units:{Fe:1,SCN:1,FeSCN:1},start:{Fe:45,SCN:45,FeSCN:0},
   tint:{sp:'FeSCN',rgb:[178,18,40],k:0.016,max:0.7},tintName:'red color',
   look:'blood-red FeSCN²⁺; Fe³⁺ is pale yellow, SCN⁻ colorless',
-  stress:[['addR','➕ Fe³⁺',{Fe:20}],['addR2','➕ SCN⁻',{SCN:20}],['remR','➖ Fe³⁺',{Fe:-0.6}]]},
+  stress:[['addR','➕ Fe³⁺',{Fe:20}],['remR','➖ Fe³⁺',{Fe:-0.6}],['addR2','➕ SCN⁻',{SCN:20}],['remR2','➖ SCN⁻',{SCN:-0.6}],['addP','➕ FeSCN²⁺',{FeSCN:15}],['remP','➖ FeSCN²⁺',{FeSCN:-0.5}]]},
  blood:{real:'🩸 The main buffer in your blood keeps pH near 7.4. Lungs remove CO₂; kidneys adjust HCO₃⁻.',title:'CO₂ + H₂O ⇌ H⁺ + HCO₃⁻ (blood buffer)',gas:false,heat:false,dH:null,
   eq:[[1,'CO2','aq'],[1,'H2O','l']],eqP:[[1,'H','aq'],[1,'HCO3','aq']],
   sp:{CO2:{l:'CO₂',c:'#8b96a0',e:'#4d5862',r:10},H:{l:'H⁺',c:'#ff8fb1',e:'#b23a62',r:4.5},HCO3:{l:'HCO₃⁻',c:'#7cc4e8',e:'#2e6f96',r:10}},
@@ -129,15 +129,17 @@ const SYS={
   units:{CO2:1,H:1,HCO3:1},start:{CO2:40,HCO3:25,H:0},
   tint:{sp:'H',mix:[[214,40,80],[240,200,40]],lo:5,hi:15,a:0.34},tintName:'indicator color',tube:'pH indicator',
   look:'a pH indicator in the blood sample: pink-red when basic, yellow when acidic',
-  stress:[['remR','😮‍💨 Hyperventilate (blow off CO₂)',{CO2:-0.5}],['addR','🫁 Hold breath / COPD (+CO₂)',{CO2:20}],['addP','🏃 Lactic acid (+H⁺)',{H:12}],['addP2','💉 Bicarbonate IV (+HCO₃⁻)',{HCO3:20}]]},
+  stress:[['remR','😮‍💨 Hyperventilate (blow off CO₂)',{CO2:-0.5}],['addR','🫁 Hold breath / COPD (+CO₂)',{CO2:20}],['addP','🏃 Lactic acid (+H⁺)',{H:12}],['remP','🫘 Kidneys excrete H⁺ (−H⁺)',{H:-0.6}],['addP2','💉 Bicarbonate IV (+HCO₃⁻)',{HCO3:20}],['remP2','🚽 Severe diarrhea (−HCO₃⁻)',{HCO3:-0.5}]],
+  pure:'💧 <b>H₂O(l)</b> is a pure liquid (water used as the solvent). This equilibrium involves more than one phase, so it is <b>heterogeneous</b>. The concentration of a pure liquid does not change, so it is <b>left out of K</b>: K = [H⁺][HCO₃⁻] / [CO₂]. Only gases (g) and dissolved species (aq) appear in K.'},
  cobalt:{real:'🧪 The classic color demo (and humidity-indicator strips): pink when cool or watery, blue when hot or full of chloride.',title:'Co(H₂O)₆²⁺ + 4 Cl⁻ ⇌ CoCl₄²⁻ + 6 H₂O (pink ⇌ blue)',gas:false,heat:true,dH:1,V0:0.7,
   eq:[[1,'Co','aq'],[4,'Cl','aq']],eqP:[[1,'CoCl','aq'],[6,'H2O','l']],
-  sp:{Co:{l:'Co(H₂O)₆²⁺',c:'#f2a3c4',e:'#a8457a',r:9},Cl:{l:'Cl⁻ (×4)',c:'#a8d88a',e:'#4f8a35',r:6},CoCl:{l:'CoCl₄²⁻',c:'#3f6fd6',e:'#1c3f8f',r:13}},
+  sp:{Co:{l:'Co(H₂O)₆²⁺',c:'#f2a3c4',e:'#a8457a',r:11},Cl:{l:'Cl⁻ (×4)',eqL:'Cl⁻',c:'#a8d88a',e:'#4f8a35',r:6},CoCl:{l:'CoCl₄²⁻',c:'#3f6fd6',e:'#1c3f8f',r:13}},
   R:['Co','Cl'],P:['CoCl'],kf:0.0011,kr:0.075,Ef:52000,Er:12000,
   units:{Co:1,Cl:4,CoCl:1},start:{Co:40,Cl:70,CoCl:0},
-  tint:{sp:'CoCl',ratio:['Co','CoCl'],mix:[[226,110,160],[50,92,214]],a:0.55},tintName:'color',tube:'Test tube',
+  tint:{sp:'CoCl',ratio:['Co','CoCl'],mix:[[236,96,160],[44,88,220]],a:0.6},tintName:'color',tube:'Test tube',
   note:'Model: each green bead stands for a group of 4 Cl⁻.',
-  stress:[['addR2','🧂 Add HCl (+Cl⁻)',{Cl:20}],['dil','💧 Add water',{__V:0.3}],['remR2','🥄 Add AgNO₃ (removes Cl⁻)',{Cl:-0.55}]]},
+  stress:[['addR','➕ Co(H₂O)₆²⁺ (pink)',{Co:12}],['remR','➖ Co(H₂O)₆²⁺',{Co:-0.5}],['addR2','🧂 Add HCl (+Cl⁻)',{Cl:20}],['remR2','🥄 Add AgNO₃ (removes Cl⁻)',{Cl:-0.55}],['addP','➕ CoCl₄²⁻ (blue)',{CoCl:12}],['remP','➖ CoCl₄²⁻',{CoCl:-0.5}],['dil','💧 Add water',{__V:0.3}]],
+  pure:'💧 <b>H₂O(l)</b> is a pure liquid (water used as the solvent). This equilibrium involves more than one phase, so it is <b>heterogeneous</b>. The concentration of a pure liquid does not change, so it is <b>left out of K</b>: K = [CoCl₄²⁻] / ([Co(H₂O)₆²⁺][Cl⁻]⁴). 💧 Add water still turns it pink, but only because it <b>dilutes</b> every ion (Q changes), not because water is in K.'},
  hb:{real:'⛰️ Climbers, athletes and patients on oxygen: how much O₂ your hemoglobin carries.',title:'Hb + O₂ ⇌ HbO₂ (your blood)',gas:false,heat:false,dH:null,
   eq:[[1,'Hb','aq'],[1,'O2','g']],eqP:[[1,'HbO2','aq']],
   sp:{Hb:{l:'Hb',c:'#7b2f4a',e:'#45142a',r:10},O2:{l:'O₂',c:'#9fd3f2',e:'#3f86b5',r:5.5},HbO2:{l:'HbO₂',c:'#ef4a3c',e:'#9c1d14',r:11}},
@@ -145,7 +147,7 @@ const SYS={
   units:{Hb:1,O2:1,HbO2:1},start:{Hb:35,O2:60,HbO2:0},
   tint:{sp:'HbO2',rgb:[220,40,40],k:0.014,max:0.62},tintName:'bright red color',
   look:'oxygen-rich blood is bright red; low-oxygen blood is darker',
-  stress:[['remR2','⛰️ Climb high (less O₂)',{O2:-0.55}],['addR2','😷 Oxygen mask (+O₂)',{O2:30}],['addR','🩸 Body makes more Hb',{Hb:15}]]}
+  stress:[['remR2','⛰️ Climb high (less O₂)',{O2:-0.55}],['addR2','😷 Oxygen mask (+O₂)',{O2:30}],['addR','🩸 Body makes more Hb',{Hb:15}],['remR','🩹 Anemia (less Hb)',{Hb:-0.45}],['addP','➕ HbO₂',{HbO2:12}],['remP','➖ HbO₂',{HbO2:-0.5}]]}
 };
 function eqCount(st,list){/* mass-action factor for one side, e.g. ['NO2','NO2'] → x² */
  let f=1;list.forEach(s=>f*=Math.max(0,st.x[s]||0));return f}
@@ -206,12 +208,32 @@ function eqCollide(st,dt){const S=SYS[st.sys],C=24,cols=Math.ceil(eqW(st)/C)+1,g
     const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,rel=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
     const ma=ra*ra,mb=rb*rb,ov=(R-d)/2;a.x-=nx*ov;a.y-=ny*ov;b.x+=nx*ov;b.y+=ny*ov;
     if(rel>=0)continue;                                      // already moving apart
-    st.coll++;
+    st.coll++;a.aimT=b.aimT=0;
     let r=st.pendF>=1&&eqFits(S.R,a,b);
     if(r){st.pendF--;st.evF++;st.viaColl=(st.viaColl||0)+1;eqTransform(st,r,S.P,1);continue}
     r=st.pendR>=1&&eqFits(S.P,a,b);
     if(r){st.pendR--;st.evR++;st.viaColl=(st.viaColl||0)+1;eqTransform(st,r,S.R,-1);continue}
     const j=2*rel/(ma+mb);a.vx+=j*mb*nx;a.vy+=j*mb*ny;b.vx-=j*ma*nx;b.vy-=j*ma*ny}}}}
+function eqDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function eqSettle(st,side,key,dir){const S=SYS[st.sys],pk='pend'+key,dk='due'+key,to=dir>0?S.P:S.R;if(st[pk]<1)return;const wait=st.t-(st[dk]||0);
+ if(side.length===1){/* one-particle step: allowed without a collision once it is overdue */
+  let guard=0;while(st[pk]>=1&&(st[pk]>6||wait>0.8)&&guard++<20){if(!eqEvent(st,side,to,dir)){st[pk]=0;break}st[pk]--;st['ev'+key]++;st[dk]=st.t}return}
+ if(wait<0.4)return;
+ /* two-particle step: steer the closest available pairs toward each other (one pair per pending reaction, at most 4 at a time) */
+ const A=st.parts.filter(p=>p.s===side[0]&&!p.dead),B=st.parts.filter(p=>p.s===side[1]&&!p.dead);if(!A.length||!B.length||(side[0]===side[1]&&A.length<2)){st[pk]=0;return}
+ const steering=st.parts.filter(p=>p.aimT&&st.t-p.aimT<1.2).length/2,want=Math.min(4,Math.ceil(st[pk]))-steering;
+ for(let k=0;k<want;k++){let best=null,bd=1e9;
+  for(const a of A){if(a.dead||(a.aimT&&st.t-a.aimT<1.2))continue;for(const b of B){if(b===a||b.dead||(b.aimT&&st.t-b.aimT<1.2))continue;const d=eqDist(a,b);if(d<bd){bd=d;best=[a,b]}}}
+  if(!best)break;const [a,b]=best,dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d;
+  /* touching already: react right here (this is a real contact, not a teleport) */
+  if(d<=S.sp[a.s].r+S.sp[b.s].r+2){st[pk]--;st['ev'+key]++;st.viaColl=(st.viaColl||0)+1;eqTransform(st,[a,b],to,dir);continue}
+  const v=Math.max(70,Math.hypot(a.vx,a.vy),Math.hypot(b.vx,b.vy));a.vx=ux*v;a.vy=uy*v;b.vx=-ux*v;b.vy=-uy*v;a.aimT=b.aimT=st.t}}
+/* Thermostat: the box sits in a water bath at the chosen temperature. Reactions that merge or split particles change the
+   kinetic energy a little each time; this gently restores the average (mass × speed²) to its starting value. */
+function eqThermostat(st,dt){if(!st.parts.length)return;const S=SYS[st.sys];let e=0;for(const p of st.parts){const m=S.sp[p.s].r**2;e+=m*(p.vx*p.vx+p.vy*p.vy)}e/=st.parts.length;
+ if(!st.E0){let t=0;for(const p of st.parts){const r=S.sp[p.s].r;t+=r*r*(75*75*9/r)}st.E0=t/st.parts.length}
+ /* target uses the same species mix as now */ let tgt=0;for(const p of st.parts){const r=S.sp[p.s].r;tgt+=r*r*(75*75*9/r)}tgt/=st.parts.length;
+ if(e<=0)return;const f=Math.pow(tgt/e,Math.min(1,dt/0.6)/2);for(const p of st.parts){p.vx*=f;p.vy*=f}}
 function eqStep(st,dt){const S=SYS[st.sys],sub=6,h=dt/sub;
  for(let j=0;j<sub;j++){const r=eqRates(st),net=(r.f-r.r)*h;
   S.R.forEach(s=>st.x[s]=Math.max(0,st.x[s]-net));S.P.forEach(s=>st.x[s]=Math.max(0,st.x[s]+net));st.accF+=r.f*h;st.accR+=r.r*h}
@@ -220,11 +242,15 @@ function eqStep(st,dt){const S=SYS[st.sys],sub=6,h=dt/sub;
  const sp=Math.sqrt(st.T/EQ_T0);
  for(const p of st.parts){p.x+=p.vx*dt*sp;p.y+=p.vy*dt*sp;eqClamp(st,p)}
  st.coll=st.coll||0;const c0=st.coll;if(!st.fast)eqCollide(st,dt);   // st.fast: warm-up runs skip collisions (counts don't depend on them)
- /* reactions that wait too long for the right collision (few particles, cold box) happen anyway, so counts stay true */
- while(st.pendF>=1&&(st.pendF>6||st.t-(st.dueF||0)>0.8)){st.pendF--;if(eqEvent(st,S.R,S.P,1))st.evF++;else{st.pendF=0;break}st.dueF=st.t}
- while(st.pendR>=1&&(st.pendR>6||st.t-(st.dueR||0)>0.8)){st.pendR--;if(eqEvent(st,S.P,S.R,-1))st.evR++;else{st.pendR=0;break}st.dueR=st.t}
- for(const s of new Set(S.P)){const lag=st.n[s]-st.x[s],tol=Math.max(1.5,0.06*st.x[s]);
-  if(lag<-tol){if(eqEvent(st,S.R,S.P,1))st.evF++}else if(lag>tol){if(eqEvent(st,S.P,S.R,-1))st.evR++}}
+ /* Reactions that wait for the right collision.
+    One-particle steps (N₂O₄ → 2 NO₂) may happen on their own: the molecule was energized by earlier bumps.
+    Two-particle steps never "teleport": if the right pair hasn't met in time, the nearest pair is steered toward each other,
+    so the reaction still happens at a real collision. Only a pair already touching may react without a fresh bounce. */
+ eqSettle(st,S.R,'F',1);eqSettle(st,S.P,'R',-1);
+ /* keep particle counts close to the smooth amounts: a lag becomes one more pending reaction (handled the same way) */
+ for(const s of new Set(S.P)){const lag=st.n[s]-st.x[s],tol=Math.max(2,0.08*st.x[s]);
+  if(lag<-tol&&st.pendF<1){st.pendF=1;st.dueF=st.t}else if(lag>tol&&st.pendR<1){st.pendR=1;st.dueR=st.t}}
+ eqThermostat(st,dt);
  const a=1-Math.exp(-dt/1.5);st.collRate=(st.collRate||0)+((st.coll-c0)/dt-(st.collRate||0))*a;
  const r2=eqRates(st);st.ema.f=r2.f;st.ema.r=r2.r;
  st.t+=dt;st.flashes=st.flashes.filter(f=>st.t-f.t<0.45)}
@@ -258,44 +284,106 @@ function rideAdd(st,n,label){if(n>0){for(let i=0;i<n;i++){const g={id:st.guests.
  st.marks.push({t:st.t,label})}
 /*EQ-ENGINE-END*/
 
-const SHAPES={ /* atoms drawn for each species: [dx,dy,r,fill,edge] */
- N2O4:[[-5,0,6.5,'#f3ead2','#9c8456'],[5,0,6.5,'#f3ead2','#9c8456']],NO2:[[0,0,7,'#b5562a','#6f3015']],
- H2:[[-3,0,4,'#ffffff','#7d8a94'],[3,0,4,'#ffffff','#7d8a94']],I2:[[-5,0,6,'#6b3fa0','#3e1f63'],[5,0,6,'#6b3fa0','#3e1f63']],HI:[[-5,0,4,'#ffffff','#7d8a94'],[3,0,6,'#6b3fa0','#3e1f63']],
- Fe:[[0,0,7.5,'#f0c64a','#a7801a']],SCN:[[-3.5,0,4,'#cfd7dd','#6f7b84'],[3.5,0,4,'#cfd7dd','#6f7b84']],FeSCN:[[-4,0,7.5,'#c3142e','#6b0716'],[6.5,0,4.5,'#c3142e','#6b0716']],
- CO2:[[0,0,4.5,'#8b96a0','#4d5862'],[-7,0,4,'#e05a4f','#8e2a22'],[7,0,4,'#e05a4f','#8e2a22']],H:[[0,0,4.5,'#ff8fb1','#b23a62']],HCO3:[[0,0,6,'#7cc4e8','#2e6f96'],[-6,-5,3.5,'#e05a4f','#8e2a22'],[6,-5,3.5,'#e05a4f','#8e2a22'],[0,7,3.5,'#e05a4f','#8e2a22']],
- Co:[[0,0,9,'#f2a3c4','#a8457a']],Cl:[[0,0,5,'#a8d88a','#4f8a35']],CoCl:[[0,0,9,'#3f6fd6','#1c3f8f'],[11,0,3.5,'#a8d88a','#4f8a35'],[-11,0,3.5,'#a8d88a','#4f8a35'],[0,11,3.5,'#a8d88a','#4f8a35'],[0,-11,3.5,'#a8d88a','#4f8a35']],
- Hb:[[0,0,10,'#7b2f4a','#45142a']],O2:[[-3,0,4,'#9fd3f2','#3f86b5'],[3,0,4,'#9fd3f2','#3f86b5']],HbO2:[[0,0,10,'#ef4a3c','#9c1d14'],[9,-7,3.5,'#9fd3f2','#3f86b5'],[14,-4,3.5,'#9fd3f2','#3f86b5']]};
+const AT={H:['#ffffff','#8a96a0'],C:['#5b6168','#2a2e33'],N:['#3b6fe0','#1c3f8f'],O:['#e5483b','#8e2018'],S:['#f2d23a','#a08410'],Cl:['#5cc85c','#2b7f2b'],I:['#7b3fb0','#3e1f63']};
+const at=(el,dx,dy,r)=>[dx,dy,r,AT[el][0],AT[el][1]];
+const ring=(n,R,a0,f)=>Array.from({length:n},(_,i)=>{const a=a0+i*2*Math.PI/n;return f(Math.cos(a)*R,Math.sin(a)*R,a)});
+const SHAPES={
+ NO2:[at('O',-5.6,3,4),at('O',5.6,3,4),at('N',0,-1.2,4.5)],
+ N2O4:[at('O',-8,-4.6,3.8),at('O',-8,4.6,3.8),at('O',8,-4.6,3.8),at('O',8,4.6,3.8),at('N',-3.4,0,4.2),at('N',3.4,0,4.2)],
+ H2:[at('H',-2.6,0,3.4),at('H',2.6,0,3.4)],I2:[at('I',-4.6,0,5.8),at('I',4.6,0,5.8)],HI:[at('H',-6,0,3.4),at('I',2,0,5.8)],
+ Fe:[[0,0,7,'#f0c64a','#a7801a']],
+ SCN:[at('S',-6,0,4.3),at('N',6,0,3.9),at('C',0,0,3.5)],
+ FeSCN:[at('S',10.5,0,4.2),at('C',5.6,0,3.3),at('N',0.8,0,3.7),[-7,0,6.6,'#c3142e','#6b0716']],
+ CO2:[at('O',-7,0,4.3),at('O',7,0,4.3),at('C',0,0,4.3)],
+ H:[[0,0,3.8,'#ffc2d4','#b23a62']],
+ HCO3:[at('H',0,-11.6,2.6),at('O',0,-7,4),at('O',6.1,3.5,4),at('O',-6.1,3.5,4),at('C',0,0,4)],
+ Co:[...ring(6,9,0,(x,y,a)=>[at('H',Math.cos(a+0.28)*12.2,Math.sin(a+0.28)*12.2,1.7),at('H',Math.cos(a-0.28)*12.2,Math.sin(a-0.28)*12.2,1.7),at('O',x,y,3.2)]).flat(),[0,0,5.4,'#f2a3c4','#a8457a']],
+ Cl:ring(4,2.9,Math.PI/4,(x,y)=>at('Cl',x,y,3.1)),
+ CoCl:[...ring(4,9,Math.PI/4,(x,y)=>at('Cl',x,y,4.3)),[0,0,5.8,'#3f6fd6','#1c3f8f']],
+ Hb:[[0,0,10,'#8e2d48','#4e1426','cell']],
+ HbO2:[[0,0,10.5,'#ef4a3c','#9c1d14','cell'],at('O',7.6,-7.6,2.8),at('O',10.6,-10,2.8)],
+ O2:[at('O',-3,0,3.8),at('O',3,0,3.8)],
+ H2O:[at('H',-4.6,3.4,2.6),at('H',4.6,3.4,2.6),at('O',0,0,4.2)]};
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const ORDER=[['no2','N₂O₄ ⇌ NO₂'],['hi','H₂ + I₂ ⇌ HI'],['fescn','FeSCN²⁺ (blood-red)'],['hb','Hemoglobin + O₂'],['blood','Blood buffer']];
+const ORDER=[['ride','🎢 Ride Line'],['no2','N₂O₄ ⇌ NO₂'],['hi','H₂ + I₂ ⇌ HI'],['fescn','FeSCN²⁺ (blood-red)'],['hb','Hemoglobin + O₂'],['blood','Blood buffer']];
 const W0=440,H0=250,DRAW=1.3;           // a smaller box than the game, drawn bigger: larger particles on a projector
 let sys='no2',st=null,paused=false,speed=1,raf=0,last=0,lastSample=-1,status='',maxN=1;
-try{const s=new URLSearchParams(location.search).get('sys');if(SYS[s])sys=s;}catch(e){}
-const LW=()=>SYS[sys].gas?W0+40:W0;
+try{const s=new URLSearchParams(location.search).get('sys');if(SYS[s]||s==='ride')sys=s;}catch(e){}
+const RIDEMODE=()=>sys==='ride';
+const LW=()=>RIDEMODE()?PW:SYS[sys].gas?W0+40:W0, LH=()=>RIDEMODE()?PH:H0;
+/* ---- Ride Line (theme-park model): same physics as the game's 🎢 mode (rideNew/rideStep in the engine), drawn bigger ---- */
+const PW=600,PH=330,PK={dock:[318,92],cx:462,cy:160,rx:112,ry:96,walkY:314},RC={q:'#e8955a',r:'#5d9fd2',gq:'#d9772f',gr:'#2f7fbf'};
+const RIDE_STRESS=[['bus','🚌 Tour bus (+20 in line)'],['fire','🎆 Fireworks (15 leave the line)'],['crew','👷 Extra crew',1],['long','⏱️ Longer ride',1]];
+function slotPos(i){const per=12,row=Math.floor(i/per),k=i%per,y=52+Math.min(row,9)*25,x=row%2===0?292-k*21:292-(per-1)*21+k*21;return [x,y]}
+function ridePos(a){return [PK.cx-PK.rx*Math.cos(a),PK.cy+PK.ry*Math.sin(a)]}
+function rideFresh(kind,keep){const s=rideNew({});if(keep){s.crew=keep.crew;s.long=keep.long}
+ if(kind==='P'){s.ride=s.queue.splice(0);s.xr=s.xq;s.xq=0}else if(kind!=='R'){for(let i=0;i<20*30;i++)rideStep(s,1/30)}
+ s.t=0;s.marks=[];s.hist=[];s.boardLog=[];s.unloadLog=[];s.evF=s.evR=0;s.guests.forEach(g=>{g.justOn=g.justBack=false;g.path=null});
+ s.queue.forEach((g,i)=>{[g.x,g.y]=slotPos(i)});s.ride.forEach((g,i)=>{g.ang=(i/s.ride.length)*6.28;[g.x,g.y]=ridePos(g.ang)});
+ const r=rideRates(s);s.ema.f=r.f;s.ema.r=r.r;return s}
+function rideTick(dt){rideStep(st,dt);
+ st.ride.forEach(g=>{if(g.justOn){g.justOn=false;g.path=[PK.dock.slice()];g.ang=0}});
+ st.queue.forEach(g=>{if(g.justBack){g.justBack=false;const sx=PK.cx+PK.rx+20;g.path=g.y<PK.cy?[[sx,g.y],[sx,PK.walkY],[20,PK.walkY]]:[[g.x,PK.cy+PK.ry+14],[g.x,PK.walkY],[20,PK.walkY]]}});
+ const om=2*Math.PI/6*(st.crew?1.6:1)*(st.long?0.6:1);st.ride.forEach(g=>{g.ang=(g.ang||0)+om*dt});
+ const sp=330*dt,go=(g,tx,ty)=>{const dx=tx-g.x,dy=ty-g.y,d=Math.hypot(dx,dy);if(d<=sp){g.x=tx;g.y=ty;return true}g.x+=dx/d*sp;g.y+=dy/d*sp;return false};
+ st.queue.forEach((g,i)=>{if(g.path&&g.path.length){if(go(g,...g.path[0]))g.path.shift();return}const [x,y]=slotPos(i);go(g,x,y)});
+ st.ride.forEach(g=>{if(g.path&&g.path.length){if(go(g,...g.path[0]))g.path.shift();return}const [x,y]=ridePos(g.ang);g.x=x;g.y=y})}
+function drawPark(ctx){ctx.fillStyle='#f4fbf2';ctx.fillRect(0,0,PW,PH);
+ ctx.fillStyle='#fff8ea';ctx.strokeStyle='#e9cf98';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect?ctx.roundRect(8,34,300,262,14):ctx.rect(8,34,300,262);ctx.fill();ctx.stroke();
+ ctx.strokeStyle='#e7d3a8';ctx.lineWidth=1.5;for(let r=0;r<10;r++){const y=52+r*25+12.5;ctx.beginPath();ctx.moveTo(r%2?40:14,y);ctx.lineTo(r%2?302:276,y);ctx.stroke()}
+ ctx.lineWidth=18;ctx.strokeStyle='#dbe8f5';ctx.beginPath();ctx.ellipse(PK.cx,PK.cy,PK.rx,PK.ry,0,0,7);ctx.stroke();ctx.lineWidth=2;ctx.strokeStyle='#7fa7cc';ctx.setLineDash([6,6]);ctx.beginPath();ctx.ellipse(PK.cx,PK.cy,PK.rx,PK.ry,0,0,7);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#eef6ff';ctx.beginPath();ctx.ellipse(PK.cx,PK.cy,PK.rx-22,PK.ry-22,0,0,7);ctx.fill();
+ ctx.font='900 17px Nunito,system-ui,sans-serif';ctx.fillStyle='#94531a';ctx.fillText('THE LINE = reactants',14,25);ctx.fillStyle='#245c86';ctx.fillText('THE RIDE = products',372,25);
+ ctx.font='800 13px Nunito,system-ui,sans-serif';ctx.fillStyle='#2f6e3f';ctx.fillText('boarding →',246,48);ctx.fillStyle='#94531a';ctx.fillText('← back in line (they loved it!)',300,PK.walkY-12);
+ ctx.strokeStyle='#d6c39a';ctx.lineWidth=10;ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(PK.cx,PK.walkY);ctx.lineTo(16,PK.walkY);ctx.stroke();ctx.globalAlpha=1;
+ ctx.font='800 30px system-ui';ctx.fillText('🎢',PK.cx-18,PK.cy+11);
+ const onRide=new Set(st.ride),gold=st.guests.find(g=>g.gold);
+ for(const g of st.guests){if(g.gold)continue;ctx.beginPath();ctx.arc(g.x,g.y,8.5,0,7);ctx.fillStyle=onRide.has(g)?RC.r:RC.q;ctx.fill();ctx.lineWidth=1.8;ctx.strokeStyle='#fff';ctx.stroke()}
+ if(gold){ctx.beginPath();ctx.arc(gold.x,gold.y,11,0,7);ctx.fillStyle='#f7c948';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#8a6a10';ctx.stroke();ctx.font='900 13px Nunito,system-ui,sans-serif';ctx.fillStyle='#5c4708';ctx.fillText('⭐ follow me',Math.max(4,Math.min(gold.x-34,PW-92)),Math.max(14,gold.y-15))}}
 function fresh(start,keep){const S=SYS[sys],o={W0,H:H0,V:keep?keep.V:(S.gas?0.7:1),T:keep?keep.T:EQ_T0,cat:keep?keep.cat:false};if(start)o.start=start;
  const s=eqNew(sys,o);if(!start){s.fast=true;eqRun(s,25,1/10);s.fast=false;}s.t=0;s.flashes=[];s.marks=[];s.hist=[];s.evF=s.evR=0;return s}
 function startFrom(kind){const S=SYS[sys];let start={};
  if(kind==='R'){if(S.total)start={[S.R[0]]:S.total};else{S.R.forEach(k=>start[k]=(S.start[k]||0)+(S.start[S.P[0]]||0))}}
  else{if(S.total)start={[S.P[0]]:S.total*2};else{const n=Math.min(...S.R.map(k=>S.start[k]));start={[S.P[0]]:S.P.length===2?n*2:n};S.R.forEach(k=>{if(S.start[k]>n)start[k]=S.start[k]-n})}}
  return start}
-function term([c,k,ph]){const S=SYS[sys],sh=SHAPES[k];return `${c>1?c+' ':''}${sh?`<span class="sw" style="background:${sh[0][3]};border-color:${sh[0][4]}"></span>`:''}${S.sp[k]?S.sp[k].l:{H2O:'H₂O'}[k]||k}(${ph})`}
-function setup(){const S=SYS[sys];
+function term([c,k,ph]){const S=SYS[sys],sp=S.sp[k];return `${c>1?c+' ':''}${sp?`<span class="sw" style="background:${sp.c};border-color:${sp.e}"></span>`:''}${S.sp[k]?S.sp[k].l:{H2O:'H₂O'}[k]||k}(${ph})`}
+const KEYS_EQ='Keys: Space pause · 1–4 the change buttons · ← → temperature · R back to balance · F full screen';
+function setupRide(){
+ $('eqline').innerHTML=`🧍 Guests in line ⇌ 🎢 Guests on the ride<span class="dh">(reactants ⇌ products)</span>`;
+ $('real').textContent='Theme-park model: boarding = forward reaction, coming back to the line = reverse reaction. Follow the gold ⭐ guest: nobody is ever stuck.';
+ $('stress').innerHTML=RIDE_STRESS.map(([k,l,tog],i)=>`<button type="button" class="big${tog?'':' go'}" data-s="${k}" aria-keyshortcuts="${i+1}"${tog?' aria-pressed="false"':''}>${esc(l)}</button>`).join('');
+ $('tWrap').hidden=$('vWrap').hidden=$('catBtn').hidden=true;
+ $('ratesH').textContent='Guests per minute';$('fL').textContent='Boarding';$('rL').textContent='Back in line';
+ $('counts').innerHTML='<h2>Guests</h2>'+[['q','In line',RC.q],['r','On the ride',RC.r]].map(([k,l,c])=>`<div class="bar"><span><span class="sw" style="background:${c};border-color:${c}"></span>${l}</span><div class="track"><div class="fill" data-c="${k}" style="background:${c}"></div></div><b data-n="${k}">0</b></div>`).join('');
+ $('grH').textContent='Line and ride over time (last 30 s)';
+ document.querySelector('[data-r="R"]').textContent='↺ Everyone in line';document.querySelector('[data-r="P"]').textContent='↺ Everyone on the ride';
+ $('keys').textContent='Keys: Space pause · 1 tour bus · 2 fireworks · 3 extra crew · 4 longer ride · R back to balance · F full screen';
+ $('cv').setAttribute('aria-label','Theme park: a line of guests on the left and a ride loop on the right');
+ st=rideFresh();maxN=1;status=''}
+function setup(){
  $('systems').innerHTML=ORDER.map(([k,l])=>`<button type="button" class="sys" data-sys="${k}" aria-pressed="${k===sys}">${l}</button>`).join('');
+ try{const u=new URL(location.href);u.searchParams.set('sys',sys);history.replaceState(null,'',u)}catch(e){}
+ lastSample=-1;
+ if(RIDEMODE())return setupRide();
+ const S=SYS[sys];
+ $('catBtn').hidden=false;$('ratesH').textContent='Reaction rates';$('fL').textContent='Forward';$('rL').textContent='Reverse';$('grH').textContent='Amount over time (last 30 s)';
+ document.querySelector('[data-r="R"]').textContent='↺ Reactants only';document.querySelector('[data-r="P"]').textContent='↺ Products only';$('keys').textContent=KEYS_EQ;
  const dh=S.dH==null?'':S.dH>0?`<span class="dh">ΔH &gt; 0 (endothermic)</span>`:`<span class="dh">ΔH &lt; 0 (exothermic)</span>`;
  $('eqline').innerHTML=`${S.eq.map(term).join(' + ')} ⇌ ${S.eqP.map(term).join(' + ')}${dh}`;
  $('real').textContent=S.real||'';
  $('stress').innerHTML=S.stress.map(([k,l],i)=>`<button type="button" class="big go" data-s="${k}" aria-keyshortcuts="${i+1}">${esc(l)}</button>`).join('');
  $('tWrap').hidden=!S.heat;$('vWrap').hidden=!S.gas;
- $('counts').innerHTML='<h2>Particles</h2>'+Object.keys(S.sp).map(k=>`<div class="bar"><span><span class="sw" style="background:${SHAPES[k][0][3]};border-color:${SHAPES[k][0][4]}"></span>${S.sp[k].l}</span><div class="track"><div class="fill" data-c="${k}" style="background:${SHAPES[k][0][4]}"></div></div><b data-n="${k}">0</b></div>`).join('');
+ $('counts').innerHTML='<h2>Particles</h2>'+Object.keys(S.sp).map(k=>`<div class="bar"><span><span class="sw" style="background:${S.sp[k].c};border-color:${S.sp[k].e}"></span>${S.sp[k].l}</span><div class="track"><div class="fill" data-c="${k}" style="background:${S.sp[k].e}"></div></div><b data-n="${k}">0</b></div>`).join('');
  $('cv').setAttribute('aria-label','Particle view: '+S.title);
  st=fresh();maxN=1;status='';$('tSl').value=25;$('tOut').textContent='25 °C';$('vSl').value=70;$('vOut').textContent='70%';
- $('catBtn').setAttribute('aria-pressed','false');
- try{const u=new URL(location.href);u.searchParams.set('sys',sys);history.replaceState(null,'',u)}catch(e){}}
+ $('catBtn').setAttribute('aria-pressed','false')}
 function fit(cv,w,h){const dpr=window.devicePixelRatio||1,cw=cv.clientWidth||w,want=Math.round(cw*dpr);if(cv.width!==want){cv.width=want;cv.height=Math.round(want*h/w)}const c=cv.getContext('2d');c.setTransform(cv.width/w,0,0,cv.height/h,0,0);return c}
-function draw(){const S=SYS[sys],lw=LW(),cv=$('cv'),ctx=fit(cv,lw,H0),W=eqW(st);
- cv.style.aspectRatio=lw+'/'+H0;
+function draw(){const lw=LW(),lh=LH(),cv=$('cv');cv.style.aspectRatio=lw+'/'+lh;const ctx=fit(cv,lw,lh);
+ if(RIDEMODE()){ctx.clearRect(0,0,lw,lh);drawPark(ctx);const t=[st.crew?'👷 extra crew':'',st.long?'⏱️ longer ride':'',paused?'paused':''].filter(Boolean).join(' · ');$('stamp').textContent=t;$('stamp').hidden=!t;return}
+ $('stamp').hidden=false;const S=SYS[sys],W=eqW(st);
  ctx.clearRect(0,0,lw,H0);const tc=st.T-273,warm=Math.max(0,Math.min(1,(tc-25)/75)),cold=Math.max(0,Math.min(1,(25-tc)/25));
  ctx.fillStyle=`rgb(${250-cold*20},${251-warm*12-cold*4},${255-warm*30})`;ctx.fillRect(0,0,W,H0);
  const tn=(st.x[S.tint.sp]??st.n[S.tint.sp])/st.V;let al,rgb;
@@ -303,31 +391,45 @@ function draw(){const S=SYS[sys],lw=LW(),cv=$('cv'),ctx=fit(cv,lw,H0),W=eqW(st);
  ctx.fillStyle=`rgba(${rgb.join(',')},${al*0.45})`;ctx.fillRect(0,0,W,H0);
  if(S.gas){ctx.fillStyle='#dfe5ea';ctx.fillRect(W,0,lw-W,H0);ctx.fillStyle='#8696a3';ctx.fillRect(W,0,8,H0);ctx.fillRect(W+8,H0/2-6,lw-W,12)}
  for(const p of st.parts){const sh=SHAPES[p.s];p.a=(p.a??(p.x*7%6.28))+(paused?0:(p.vx>0?0.01:-0.01));const ca=Math.cos(p.a),sa=Math.sin(p.a);
-  for(const [dx,dy,r,f,e] of sh){const x=p.x+(dx*ca-dy*sa)*DRAW,y=p.y+(dx*sa+dy*ca)*DRAW;ctx.beginPath();ctx.arc(x,y,r*DRAW,0,7);ctx.fillStyle=f;ctx.fill();ctx.lineWidth=1.8;ctx.strokeStyle=e;ctx.stroke()}}
+  for(const [dx,dy,r,f,e,kind] of sh){const x=p.x+(dx*ca-dy*sa)*DRAW,y=p.y+(dx*sa+dy*ca)*DRAW;ctx.beginPath();ctx.arc(x,y,r*DRAW,0,7);ctx.fillStyle=f;ctx.fill();ctx.lineWidth=kind==='cell'?2.6:1.8;ctx.strokeStyle=e;ctx.stroke();
+   if(kind==='cell'){ctx.beginPath();ctx.arc(x,y,r*DRAW*0.48,0,7);ctx.fillStyle='rgba(255,255,255,0.26)';ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle='rgba(0,0,0,0.14)';ctx.stroke()}}}
  for(const f of st.flashes){const k=Math.max(0,Math.min(1,(st.t-f.t)/0.45));ctx.beginPath();ctx.arc(f.x,f.y,8+k*20,0,7);ctx.strokeStyle=f.dir>0?`rgba(31,138,76,${1-k})`:`rgba(194,90,18,${1-k})`;ctx.lineWidth=3.5;ctx.setLineDash(f.dir>0?[]:[6,5]);ctx.stroke();ctx.setLineDash([])}
  $('stamp').textContent=`${tc.toFixed(0)} °C${S.gas?' · V '+Math.round(st.V*100)+'%':''}${st.cat?' · catalyst on':''}${paused?' · paused':''}`}
-function readout(){const S=SYS[sys],f=st.ema.f,r=st.ema.r,m=Math.max(f,r,0.5);
+function counts(){return RIDEMODE()?{q:st.queue.length,r:st.ride.length}:st.n}
+function readout(){const ride=RIDEMODE(),S=SYS[sys],f=st.ema.f,r=st.ema.r,m=Math.max(f,r,0.5),n=counts();
  $('fF').style.width=(100*f/m)+'%';$('fR').style.width=(100*r/m)+'%';$('fN').textContent=f.toFixed(1);$('rN').textContent=r.toFixed(1);
- for(const k in S.sp)maxN=Math.max(maxN,st.n[k]);
- for(const k in S.sp){const b=document.querySelector(`[data-n="${k}"]`),fl=document.querySelector(`[data-c="${k}"]`);if(b)b.textContent=st.n[k];if(fl)fl.style.width=(100*st.n[k]/maxN)+'%'}
+ for(const k in n)maxN=Math.max(maxN,n[k]);
+ for(const k in n){const b=document.querySelector(`[data-n="${k}"]`),fl=document.querySelector(`[data-c="${k}"]`);if(b)b.textContent=n[k];if(fl)fl.style.width=(100*n[k]/maxN)+'%'}
  const bal=Math.abs(f-r)<0.12*Math.max(f,r)+0.08,want=bal?'eq':f>r?'fwd':'rev';
- if(want!==status){status=want;const el=$('status'),P=S.eqP.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + '),R=S.eq.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + ');
-  el.className='status card '+want;el.textContent=want==='eq'?'⚖️ Balanced: forward = reverse':want==='fwd'?`➡️ Shifting forward, making ${P}`:`⬅️ Shifting back, making ${R}`}}
-function graph(){const S=SYS[sys],cv=$('gr'),w=600,h=240,ctx=fit(cv,w,h),H=st.hist;ctx.clearRect(0,0,w,h);if(H.length<2)return;
- const ks=Object.keys(S.sp);let mx=1;for(const p of H)for(const k of ks)mx=Math.max(mx,p.c[k]);const t1=st.t,t0=t1-30,X=t=>(t-t0)/30*(w-20)+10,Y=v=>h-12-(v/mx)*(h-24);
+ if(want!==status){status=want;const el=$('status');el.className='status card '+want;
+  if(ride){el.textContent=want==='eq'?'⚖️ Balanced: boarding = back in line':want==='fwd'?'➡️ Shifting toward the ride':'⬅️ Shifting back toward the line';return}
+  const P=S.eqP.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + '),R=S.eq.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + ');
+  el.textContent=want==='eq'?'⚖️ Balanced: forward = reverse':want==='fwd'?`➡️ Shifting forward, making ${P}`:`⬅️ Shifting back, making ${R}`}}
+function graph(){const ride=RIDEMODE(),cv=$('gr'),w=600,h=240,ctx=fit(cv,w,h),H=st.hist;ctx.clearRect(0,0,w,h);if(H.length<2)return;
+ const ks=ride?['q','r']:Object.keys(SYS[sys].sp),col=k=>{if(ride)return k==='q'?RC.gq:RC.gr;const e=SYS[sys].sp[k].e;return e==='#9c8456'?'#b49a62':e};let mx=1;for(const p of H)for(const k of ks)mx=Math.max(mx,p.c[k]);const t1=st.t,t0=t1-30,X=t=>(t-t0)/30*(w-20)+10,Y=v=>h-12-(v/mx)*(h-24);
  ctx.strokeStyle='#e3e8f0';ctx.lineWidth=1;for(let i=0;i<=4;i++){const y=12+i*(h-24)/4;ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(w-10,y);ctx.stroke()}
  let lastX=-1e9,row=0;for(const m of st.marks){if(m.t<t0)continue;const mx0=X(m.t);row=mx0-lastX<170?(row+1)%3:0;lastX=mx0;ctx.strokeStyle='#8a94a8';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(X(m.t),8);ctx.lineTo(X(m.t),h-8);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#4b566e';ctx.font='800 15px Nunito,system-ui,sans-serif';ctx.fillText(m.label,X(m.t)+5,22+row*18)}
- for(const k of ks){const e=SHAPES[k][0][4];ctx.strokeStyle=e==='#9c8456'?'#b49a62':e;ctx.lineWidth=4;ctx.beginPath();H.forEach((p,i)=>{const x=X(p.t),y=Y(p.c[k]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}
+ for(const k of ks){ctx.strokeStyle=col(k);ctx.lineWidth=4;ctx.beginPath();H.forEach((p,i)=>{const x=X(p.t),y=Y(p.c[k]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}
 function loop(now){raf=requestAnimationFrame(loop);if(document.hidden)return;const dt=Math.min(0.05,(now-last)/1000)*speed;last=now;
- if(!paused&&dt>0){eqStep(st,dt);if(st.t-lastSample>=0.2||lastSample<0){lastSample=st.t;const c={};for(const k in SYS[sys].sp)c[k]=st.x[k]/st.V;st.hist.push({t:st.t,c});while(st.hist.length&&st.hist[0].t<st.t-30)st.hist.shift();readout();graph()}}
+ if(!paused&&dt>0){const ride=RIDEMODE();if(ride)rideTick(dt);else eqStep(st,dt);
+  if(st.t-lastSample>=0.2||lastSample<0){lastSample=st.t;const c={};if(ride){c.q=st.xq;c.r=st.xr}else for(const k in SYS[sys].sp)c[k]=st.x[k]/st.V;st.hist.push({t:st.t,c});while(st.hist.length&&st.hist[0].t<st.t-30)st.hist.shift();readout();graph()}}
  draw()}
-function stress(i){const S=SYS[sys],it=S.stress[i];if(!it)return;eqChange(st,it[2],it[1].replace(/^\W+\s*/,'').replace(/\s*\(.*\)\s*$/,''))}
+function rideStress(k){
+ if(k==='bus'){if(st.guests.length<130)rideAdd(st,20,'tour bus')}
+ else if(k==='fire')rideAdd(st,-15,'fireworks');
+ else if(k==='crew'||k==='long'){st[k]=!st[k];const b=document.querySelector(`[data-s="${k}"]`);if(b)b.setAttribute('aria-pressed',st[k]);
+  st.marks.push({t:st.t,label:k==='crew'?(st.crew?'extra crew':'crew back to normal'):(st.long?'longer ride':'normal ride')})}}
+function stress(i){if(RIDEMODE()){const it=RIDE_STRESS[i];if(it)rideStress(it[0]);return}
+ const S=SYS[sys],it=S.stress[i];if(!it)return;eqChange(st,it[2],it[1].replace(/^\W+\s*/,'').replace(/\s*\(.*\)\s*$/,''))}
 function setT(c){c=Math.max(0,Math.min(100,c));$('tSl').value=c;eqSetT(st,273+c);$('tOut').textContent=c+' °C';clearTimeout(setT.m);setT.m=setTimeout(()=>st.marks.push({t:st.t,label:c+' °C'}),250)}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.sys){sys=b.dataset.sys;setup();return}
- if(b.dataset.s){stress(SYS[sys].stress.findIndex(x=>x[0]===b.dataset.s));return}
+ if(b.dataset.s){if(RIDEMODE())rideStress(b.dataset.s);else stress(SYS[sys].stress.findIndex(x=>x[0]===b.dataset.s));return}
  if(b.dataset.sp){speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed',x===b));return}
- if(b.dataset.r){const keep={V:st.V,T:st.T,cat:st.cat};st=b.dataset.r==='E'?fresh(null,keep):fresh(startFrom(b.dataset.r),keep);lastSample=-1;st.marks=[{t:0,label:b.dataset.r==='R'?'reactants only':b.dataset.r==='P'?'products only':'balanced'}];status='';return}
+ if(b.dataset.r){const r=b.dataset.r;
+  if(RIDEMODE()){st=rideFresh(r,{crew:st.crew,long:st.long});st.marks=[{t:0,label:r==='R'?'everyone in line':r==='P'?'everyone on the ride':'balanced'}]}
+  else{const keep={V:st.V,T:st.T,cat:st.cat};st=r==='E'?fresh(null,keep):fresh(startFrom(r),keep);st.marks=[{t:0,label:r==='R'?'reactants only':r==='P'?'products only':'balanced'}]}
+  lastSample=-1;status='';return}
  if(b.id==='catBtn'){st.cat=!st.cat;b.setAttribute('aria-pressed',st.cat);st.marks.push({t:st.t,label:st.cat?'catalyst on':'catalyst off'});return}
  if(b.id==='pauseBtn'){paused=!paused;b.setAttribute('aria-pressed',paused);b.textContent=paused?'▶ Play':'⏸ Pause';return}
  if(b.id==='fsBtn'){const d=document;if(d.fullscreenElement)d.exitFullscreen();else if(d.documentElement.requestFullscreen)d.documentElement.requestFullscreen().catch(()=>{});return}});
@@ -336,12 +438,13 @@ $('vSl').addEventListener('input',e=>{const v=+e.target.value;eqSetV(st,v/100);$
 document.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea')&&!/^[1-4]$/.test(e.key))return;if(e.altKey||e.ctrlKey||e.metaKey)return;
  if(e.key===' '&&!e.target.closest('button')){e.preventDefault();$('pauseBtn').click()}
  else if(/^[1-4]$/.test(e.key))stress(+e.key-1);
- else if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&SYS[sys].heat&&!e.target.closest('input')){e.preventDefault();setT(+$('tSl').value+(e.key==='ArrowRight'?10:-10))}
+ else if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!RIDEMODE()&&SYS[sys].heat&&!e.target.closest('input')){e.preventDefault();setT(+$('tSl').value+(e.key==='ArrowRight'?10:-10))}
  else if(e.key==='r'||e.key==='R')document.querySelector('[data-r="E"]').click();
  else if(e.key==='f'||e.key==='F')$('fsBtn').click()});
 if(!document.documentElement.requestFullscreen)$('fsBtn').hidden=true;
 setup();last=performance.now();raf=requestAnimationFrame(loop);
-window.PROJECTOR={state:()=>({sys,paused,speed,n:Object.assign({},st.n),parts:st.parts.length,t:st.t,cat:st.cat,T:st.T,V:st.V})};
+window.PROJECTOR={state:()=>RIDEMODE()?({sys,paused,speed,n:counts(),guests:st.guests.length,t:st.t,crew:st.crew,long:st.long,f:st.ema.f,r:st.ema.r})
+ :({sys,paused,speed,n:Object.assign({},st.n),parts:st.parts.length,t:st.t,cat:st.cat,T:st.T,V:st.V})};
 })();
 </script>
 <script src="../../embed.js" defer></script>

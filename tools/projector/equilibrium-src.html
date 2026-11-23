@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Equilibrium Projector • Demo Library • ItsDrDan</title>
-<meta name="description" content="Teacher projector mode: a big Equilibrium Park particle lab with no questions, large particles and big controls for live lecture demos.">
+<meta name="description" content="Teacher projector mode: the Equilibrium Park ride line and particle labs with no questions, large particles and big controls for live lecture demos.">
 <link rel="icon" href="https://itsdrdan.github.io/games/assets/logo-32.png">
 <!-- Built by tools/build_projector.js from tools/projector/equilibrium-src.html and the Equilibrium Park engine
      (ItsDrDan/equilibrium tools/engine-src.js). Edit the source, not index.html. -->
@@ -65,11 +65,11 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;background:#fafbf
   <div class="card stage"><canvas id="cv" width="960" height="500" role="img" aria-label="Particle view of the reaction"></canvas><div class="stamp" id="stamp" aria-hidden="true"></div></div>
   <div class="side">
    <div class="status card" id="status" role="status" aria-live="polite">⚖️ Balanced</div>
-   <div class="card rates"><h2>Reaction rates</h2>
-    <div class="bar"><span>Forward</span><div class="track"><div class="fill" id="fF" style="background:var(--fwd)"></div></div><b id="fN">0</b></div>
-    <div class="bar"><span>Reverse</span><div class="track"><div class="fill" id="fR" style="background:var(--rev)"></div></div><b id="rN">0</b></div></div>
+   <div class="card rates"><h2 id="ratesH">Reaction rates</h2>
+    <div class="bar"><span id="fL">Forward</span><div class="track"><div class="fill" id="fF" style="background:var(--fwd)"></div></div><b id="fN">0</b></div>
+    <div class="bar"><span id="rL">Reverse</span><div class="track"><div class="fill" id="fR" style="background:var(--rev)"></div></div><b id="rN">0</b></div></div>
    <div class="card counts" id="counts"><h2>Particles</h2></div>
-   <div class="card graph"><h2>Amount over time (last 30 s)</h2><canvas id="gr" width="600" height="240" role="img" aria-label="Graph of the amount of each substance over the last 30 seconds"></canvas></div>
+   <div class="card graph"><h2 id="grH">Amount over time (last 30 s)</h2><canvas id="gr" width="600" height="240" role="img" aria-label="Graph of the amount of each substance over the last 30 seconds"></canvas></div>
   </div>
  </div>
  <div class="ctrls" id="stress"></div>
@@ -80,13 +80,13 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;background:#fafbf
  <div class="ctrls">
   <button type="button" class="big" id="catBtn" aria-pressed="false">⚡ Catalyst</button>
   <button type="button" class="big" id="pauseBtn" aria-pressed="false">⏸ Pause</button>
-  <div class="speed" role="group" aria-label="Speed"><button type="button" class="big" data-sp="0.5" aria-pressed="false">½×</button><button type="button" class="big" data-sp="1" aria-pressed="true">1×</button><button type="button" class="big" data-sp="2" aria-pressed="false">2×</button></div>
+  <div class="speed" role="group" aria-label="Speed"><button type="button" class="big" data-sp="0.25" aria-pressed="false" aria-label="Quarter speed">🐢 ¼×</button><button type="button" class="big" data-sp="0.5" aria-pressed="false">½×</button><button type="button" class="big" data-sp="1" aria-pressed="true">1×</button><button type="button" class="big" data-sp="2" aria-pressed="false">2×</button></div>
   <button type="button" class="big" data-r="R">↺ Reactants only</button>
   <button type="button" class="big" data-r="P">↺ Products only</button>
   <button type="button" class="big" data-r="E">↺ Back to balance</button>
   <button type="button" class="big" id="fsBtn">⛶ Full screen</button>
  </div>
- <p class="keys">Keys: Space pause · 1–4 the change buttons · ← → temperature · R back to balance · F full screen</p>
+ <p class="keys" id="keys">Keys: Space pause · 1–4 the change buttons · ← → temperature · R back to balance · F full screen</p>
 </main>
 <script>
 /*@ENGINE@*/
@@ -95,33 +95,82 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;background:#fafbf
 'use strict';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const ORDER=[['no2','N₂O₄ ⇌ NO₂'],['hi','H₂ + I₂ ⇌ HI'],['fescn','FeSCN²⁺ (blood-red)'],['hb','Hemoglobin + O₂'],['blood','Blood buffer']];
+const ORDER=[['ride','🎢 Ride Line'],['no2','N₂O₄ ⇌ NO₂'],['hi','H₂ + I₂ ⇌ HI'],['fescn','FeSCN²⁺ (blood-red)'],['hb','Hemoglobin + O₂'],['blood','Blood buffer']];
 const W0=440,H0=250,DRAW=1.3;           // a smaller box than the game, drawn bigger: larger particles on a projector
 let sys='no2',st=null,paused=false,speed=1,raf=0,last=0,lastSample=-1,status='',maxN=1;
-try{const s=new URLSearchParams(location.search).get('sys');if(SYS[s])sys=s;}catch(e){}
-const LW=()=>SYS[sys].gas?W0+40:W0;
+try{const s=new URLSearchParams(location.search).get('sys');if(SYS[s]||s==='ride')sys=s;}catch(e){}
+const RIDEMODE=()=>sys==='ride';
+const LW=()=>RIDEMODE()?PW:SYS[sys].gas?W0+40:W0, LH=()=>RIDEMODE()?PH:H0;
+/* ---- Ride Line (theme-park model): same physics as the game's 🎢 mode (rideNew/rideStep in the engine), drawn bigger ---- */
+const PW=600,PH=330,PK={dock:[318,92],cx:462,cy:160,rx:112,ry:96,walkY:314},RC={q:'#e8955a',r:'#5d9fd2',gq:'#d9772f',gr:'#2f7fbf'};
+const RIDE_STRESS=[['bus','🚌 Tour bus (+20 in line)'],['fire','🎆 Fireworks (15 leave the line)'],['crew','👷 Extra crew',1],['long','⏱️ Longer ride',1]];
+function slotPos(i){const per=12,row=Math.floor(i/per),k=i%per,y=52+Math.min(row,9)*25,x=row%2===0?292-k*21:292-(per-1)*21+k*21;return [x,y]}
+function ridePos(a){return [PK.cx-PK.rx*Math.cos(a),PK.cy+PK.ry*Math.sin(a)]}
+function rideFresh(kind,keep){const s=rideNew({});if(keep){s.crew=keep.crew;s.long=keep.long}
+ if(kind==='P'){s.ride=s.queue.splice(0);s.xr=s.xq;s.xq=0}else if(kind!=='R'){for(let i=0;i<20*30;i++)rideStep(s,1/30)}
+ s.t=0;s.marks=[];s.hist=[];s.boardLog=[];s.unloadLog=[];s.evF=s.evR=0;s.guests.forEach(g=>{g.justOn=g.justBack=false;g.path=null});
+ s.queue.forEach((g,i)=>{[g.x,g.y]=slotPos(i)});s.ride.forEach((g,i)=>{g.ang=(i/s.ride.length)*6.28;[g.x,g.y]=ridePos(g.ang)});
+ const r=rideRates(s);s.ema.f=r.f;s.ema.r=r.r;return s}
+function rideTick(dt){rideStep(st,dt);
+ st.ride.forEach(g=>{if(g.justOn){g.justOn=false;g.path=[PK.dock.slice()];g.ang=0}});
+ st.queue.forEach(g=>{if(g.justBack){g.justBack=false;const sx=PK.cx+PK.rx+20;g.path=g.y<PK.cy?[[sx,g.y],[sx,PK.walkY],[20,PK.walkY]]:[[g.x,PK.cy+PK.ry+14],[g.x,PK.walkY],[20,PK.walkY]]}});
+ const om=2*Math.PI/6*(st.crew?1.6:1)*(st.long?0.6:1);st.ride.forEach(g=>{g.ang=(g.ang||0)+om*dt});
+ const sp=330*dt,go=(g,tx,ty)=>{const dx=tx-g.x,dy=ty-g.y,d=Math.hypot(dx,dy);if(d<=sp){g.x=tx;g.y=ty;return true}g.x+=dx/d*sp;g.y+=dy/d*sp;return false};
+ st.queue.forEach((g,i)=>{if(g.path&&g.path.length){if(go(g,...g.path[0]))g.path.shift();return}const [x,y]=slotPos(i);go(g,x,y)});
+ st.ride.forEach(g=>{if(g.path&&g.path.length){if(go(g,...g.path[0]))g.path.shift();return}const [x,y]=ridePos(g.ang);g.x=x;g.y=y})}
+function drawPark(ctx){ctx.fillStyle='#f4fbf2';ctx.fillRect(0,0,PW,PH);
+ ctx.fillStyle='#fff8ea';ctx.strokeStyle='#e9cf98';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect?ctx.roundRect(8,34,300,262,14):ctx.rect(8,34,300,262);ctx.fill();ctx.stroke();
+ ctx.strokeStyle='#e7d3a8';ctx.lineWidth=1.5;for(let r=0;r<10;r++){const y=52+r*25+12.5;ctx.beginPath();ctx.moveTo(r%2?40:14,y);ctx.lineTo(r%2?302:276,y);ctx.stroke()}
+ ctx.lineWidth=18;ctx.strokeStyle='#dbe8f5';ctx.beginPath();ctx.ellipse(PK.cx,PK.cy,PK.rx,PK.ry,0,0,7);ctx.stroke();ctx.lineWidth=2;ctx.strokeStyle='#7fa7cc';ctx.setLineDash([6,6]);ctx.beginPath();ctx.ellipse(PK.cx,PK.cy,PK.rx,PK.ry,0,0,7);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#eef6ff';ctx.beginPath();ctx.ellipse(PK.cx,PK.cy,PK.rx-22,PK.ry-22,0,0,7);ctx.fill();
+ ctx.font='900 17px Nunito,system-ui,sans-serif';ctx.fillStyle='#94531a';ctx.fillText('THE LINE = reactants',14,25);ctx.fillStyle='#245c86';ctx.fillText('THE RIDE = products',372,25);
+ ctx.font='800 13px Nunito,system-ui,sans-serif';ctx.fillStyle='#2f6e3f';ctx.fillText('boarding →',246,48);ctx.fillStyle='#94531a';ctx.fillText('← back in line (they loved it!)',300,PK.walkY-12);
+ ctx.strokeStyle='#d6c39a';ctx.lineWidth=10;ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(PK.cx,PK.walkY);ctx.lineTo(16,PK.walkY);ctx.stroke();ctx.globalAlpha=1;
+ ctx.font='800 30px system-ui';ctx.fillText('🎢',PK.cx-18,PK.cy+11);
+ const onRide=new Set(st.ride),gold=st.guests.find(g=>g.gold);
+ for(const g of st.guests){if(g.gold)continue;ctx.beginPath();ctx.arc(g.x,g.y,8.5,0,7);ctx.fillStyle=onRide.has(g)?RC.r:RC.q;ctx.fill();ctx.lineWidth=1.8;ctx.strokeStyle='#fff';ctx.stroke()}
+ if(gold){ctx.beginPath();ctx.arc(gold.x,gold.y,11,0,7);ctx.fillStyle='#f7c948';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#8a6a10';ctx.stroke();ctx.font='900 13px Nunito,system-ui,sans-serif';ctx.fillStyle='#5c4708';ctx.fillText('⭐ follow me',Math.max(4,Math.min(gold.x-34,PW-92)),Math.max(14,gold.y-15))}}
 function fresh(start,keep){const S=SYS[sys],o={W0,H:H0,V:keep?keep.V:(S.gas?0.7:1),T:keep?keep.T:EQ_T0,cat:keep?keep.cat:false};if(start)o.start=start;
  const s=eqNew(sys,o);if(!start){s.fast=true;eqRun(s,25,1/10);s.fast=false;}s.t=0;s.flashes=[];s.marks=[];s.hist=[];s.evF=s.evR=0;return s}
 function startFrom(kind){const S=SYS[sys];let start={};
  if(kind==='R'){if(S.total)start={[S.R[0]]:S.total};else{S.R.forEach(k=>start[k]=(S.start[k]||0)+(S.start[S.P[0]]||0))}}
  else{if(S.total)start={[S.P[0]]:S.total*2};else{const n=Math.min(...S.R.map(k=>S.start[k]));start={[S.P[0]]:S.P.length===2?n*2:n};S.R.forEach(k=>{if(S.start[k]>n)start[k]=S.start[k]-n})}}
  return start}
-function term([c,k,ph]){const S=SYS[sys],sh=SHAPES[k];return `${c>1?c+' ':''}${sh?`<span class="sw" style="background:${sh[0][3]};border-color:${sh[0][4]}"></span>`:''}${S.sp[k]?S.sp[k].l:{H2O:'H₂O'}[k]||k}(${ph})`}
-function setup(){const S=SYS[sys];
+function term([c,k,ph]){const S=SYS[sys],sp=S.sp[k];return `${c>1?c+' ':''}${sp?`<span class="sw" style="background:${sp.c};border-color:${sp.e}"></span>`:''}${S.sp[k]?S.sp[k].l:{H2O:'H₂O'}[k]||k}(${ph})`}
+const KEYS_EQ='Keys: Space pause · 1–4 the change buttons · ← → temperature · R back to balance · F full screen';
+function setupRide(){
+ $('eqline').innerHTML=`🧍 Guests in line ⇌ 🎢 Guests on the ride<span class="dh">(reactants ⇌ products)</span>`;
+ $('real').textContent='Theme-park model: boarding = forward reaction, coming back to the line = reverse reaction. Follow the gold ⭐ guest: nobody is ever stuck.';
+ $('stress').innerHTML=RIDE_STRESS.map(([k,l,tog],i)=>`<button type="button" class="big${tog?'':' go'}" data-s="${k}" aria-keyshortcuts="${i+1}"${tog?' aria-pressed="false"':''}>${esc(l)}</button>`).join('');
+ $('tWrap').hidden=$('vWrap').hidden=$('catBtn').hidden=true;
+ $('ratesH').textContent='Guests per minute';$('fL').textContent='Boarding';$('rL').textContent='Back in line';
+ $('counts').innerHTML='<h2>Guests</h2>'+[['q','In line',RC.q],['r','On the ride',RC.r]].map(([k,l,c])=>`<div class="bar"><span><span class="sw" style="background:${c};border-color:${c}"></span>${l}</span><div class="track"><div class="fill" data-c="${k}" style="background:${c}"></div></div><b data-n="${k}">0</b></div>`).join('');
+ $('grH').textContent='Line and ride over time (last 30 s)';
+ document.querySelector('[data-r="R"]').textContent='↺ Everyone in line';document.querySelector('[data-r="P"]').textContent='↺ Everyone on the ride';
+ $('keys').textContent='Keys: Space pause · 1 tour bus · 2 fireworks · 3 extra crew · 4 longer ride · R back to balance · F full screen';
+ $('cv').setAttribute('aria-label','Theme park: a line of guests on the left and a ride loop on the right');
+ st=rideFresh();maxN=1;status=''}
+function setup(){
  $('systems').innerHTML=ORDER.map(([k,l])=>`<button type="button" class="sys" data-sys="${k}" aria-pressed="${k===sys}">${l}</button>`).join('');
+ try{const u=new URL(location.href);u.searchParams.set('sys',sys);history.replaceState(null,'',u)}catch(e){}
+ lastSample=-1;
+ if(RIDEMODE())return setupRide();
+ const S=SYS[sys];
+ $('catBtn').hidden=false;$('ratesH').textContent='Reaction rates';$('fL').textContent='Forward';$('rL').textContent='Reverse';$('grH').textContent='Amount over time (last 30 s)';
+ document.querySelector('[data-r="R"]').textContent='↺ Reactants only';document.querySelector('[data-r="P"]').textContent='↺ Products only';$('keys').textContent=KEYS_EQ;
  const dh=S.dH==null?'':S.dH>0?`<span class="dh">ΔH &gt; 0 (endothermic)</span>`:`<span class="dh">ΔH &lt; 0 (exothermic)</span>`;
  $('eqline').innerHTML=`${S.eq.map(term).join(' + ')} ⇌ ${S.eqP.map(term).join(' + ')}${dh}`;
  $('real').textContent=S.real||'';
  $('stress').innerHTML=S.stress.map(([k,l],i)=>`<button type="button" class="big go" data-s="${k}" aria-keyshortcuts="${i+1}">${esc(l)}</button>`).join('');
  $('tWrap').hidden=!S.heat;$('vWrap').hidden=!S.gas;
- $('counts').innerHTML='<h2>Particles</h2>'+Object.keys(S.sp).map(k=>`<div class="bar"><span><span class="sw" style="background:${SHAPES[k][0][3]};border-color:${SHAPES[k][0][4]}"></span>${S.sp[k].l}</span><div class="track"><div class="fill" data-c="${k}" style="background:${SHAPES[k][0][4]}"></div></div><b data-n="${k}">0</b></div>`).join('');
+ $('counts').innerHTML='<h2>Particles</h2>'+Object.keys(S.sp).map(k=>`<div class="bar"><span><span class="sw" style="background:${S.sp[k].c};border-color:${S.sp[k].e}"></span>${S.sp[k].l}</span><div class="track"><div class="fill" data-c="${k}" style="background:${S.sp[k].e}"></div></div><b data-n="${k}">0</b></div>`).join('');
  $('cv').setAttribute('aria-label','Particle view: '+S.title);
  st=fresh();maxN=1;status='';$('tSl').value=25;$('tOut').textContent='25 °C';$('vSl').value=70;$('vOut').textContent='70%';
- $('catBtn').setAttribute('aria-pressed','false');
- try{const u=new URL(location.href);u.searchParams.set('sys',sys);history.replaceState(null,'',u)}catch(e){}}
+ $('catBtn').setAttribute('aria-pressed','false')}
 function fit(cv,w,h){const dpr=window.devicePixelRatio||1,cw=cv.clientWidth||w,want=Math.round(cw*dpr);if(cv.width!==want){cv.width=want;cv.height=Math.round(want*h/w)}const c=cv.getContext('2d');c.setTransform(cv.width/w,0,0,cv.height/h,0,0);return c}
-function draw(){const S=SYS[sys],lw=LW(),cv=$('cv'),ctx=fit(cv,lw,H0),W=eqW(st);
- cv.style.aspectRatio=lw+'/'+H0;
+function draw(){const lw=LW(),lh=LH(),cv=$('cv');cv.style.aspectRatio=lw+'/'+lh;const ctx=fit(cv,lw,lh);
+ if(RIDEMODE()){ctx.clearRect(0,0,lw,lh);drawPark(ctx);const t=[st.crew?'👷 extra crew':'',st.long?'⏱️ longer ride':'',paused?'paused':''].filter(Boolean).join(' · ');$('stamp').textContent=t;$('stamp').hidden=!t;return}
+ $('stamp').hidden=false;const S=SYS[sys],W=eqW(st);
  ctx.clearRect(0,0,lw,H0);const tc=st.T-273,warm=Math.max(0,Math.min(1,(tc-25)/75)),cold=Math.max(0,Math.min(1,(25-tc)/25));
  ctx.fillStyle=`rgb(${250-cold*20},${251-warm*12-cold*4},${255-warm*30})`;ctx.fillRect(0,0,W,H0);
  const tn=(st.x[S.tint.sp]??st.n[S.tint.sp])/st.V;let al,rgb;
@@ -129,31 +178,45 @@ function draw(){const S=SYS[sys],lw=LW(),cv=$('cv'),ctx=fit(cv,lw,H0),W=eqW(st);
  ctx.fillStyle=`rgba(${rgb.join(',')},${al*0.45})`;ctx.fillRect(0,0,W,H0);
  if(S.gas){ctx.fillStyle='#dfe5ea';ctx.fillRect(W,0,lw-W,H0);ctx.fillStyle='#8696a3';ctx.fillRect(W,0,8,H0);ctx.fillRect(W+8,H0/2-6,lw-W,12)}
  for(const p of st.parts){const sh=SHAPES[p.s];p.a=(p.a??(p.x*7%6.28))+(paused?0:(p.vx>0?0.01:-0.01));const ca=Math.cos(p.a),sa=Math.sin(p.a);
-  for(const [dx,dy,r,f,e] of sh){const x=p.x+(dx*ca-dy*sa)*DRAW,y=p.y+(dx*sa+dy*ca)*DRAW;ctx.beginPath();ctx.arc(x,y,r*DRAW,0,7);ctx.fillStyle=f;ctx.fill();ctx.lineWidth=1.8;ctx.strokeStyle=e;ctx.stroke()}}
+  for(const [dx,dy,r,f,e,kind] of sh){const x=p.x+(dx*ca-dy*sa)*DRAW,y=p.y+(dx*sa+dy*ca)*DRAW;ctx.beginPath();ctx.arc(x,y,r*DRAW,0,7);ctx.fillStyle=f;ctx.fill();ctx.lineWidth=kind==='cell'?2.6:1.8;ctx.strokeStyle=e;ctx.stroke();
+   if(kind==='cell'){ctx.beginPath();ctx.arc(x,y,r*DRAW*0.48,0,7);ctx.fillStyle='rgba(255,255,255,0.26)';ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle='rgba(0,0,0,0.14)';ctx.stroke()}}}
  for(const f of st.flashes){const k=Math.max(0,Math.min(1,(st.t-f.t)/0.45));ctx.beginPath();ctx.arc(f.x,f.y,8+k*20,0,7);ctx.strokeStyle=f.dir>0?`rgba(31,138,76,${1-k})`:`rgba(194,90,18,${1-k})`;ctx.lineWidth=3.5;ctx.setLineDash(f.dir>0?[]:[6,5]);ctx.stroke();ctx.setLineDash([])}
  $('stamp').textContent=`${tc.toFixed(0)} °C${S.gas?' · V '+Math.round(st.V*100)+'%':''}${st.cat?' · catalyst on':''}${paused?' · paused':''}`}
-function readout(){const S=SYS[sys],f=st.ema.f,r=st.ema.r,m=Math.max(f,r,0.5);
+function counts(){return RIDEMODE()?{q:st.queue.length,r:st.ride.length}:st.n}
+function readout(){const ride=RIDEMODE(),S=SYS[sys],f=st.ema.f,r=st.ema.r,m=Math.max(f,r,0.5),n=counts();
  $('fF').style.width=(100*f/m)+'%';$('fR').style.width=(100*r/m)+'%';$('fN').textContent=f.toFixed(1);$('rN').textContent=r.toFixed(1);
- for(const k in S.sp)maxN=Math.max(maxN,st.n[k]);
- for(const k in S.sp){const b=document.querySelector(`[data-n="${k}"]`),fl=document.querySelector(`[data-c="${k}"]`);if(b)b.textContent=st.n[k];if(fl)fl.style.width=(100*st.n[k]/maxN)+'%'}
+ for(const k in n)maxN=Math.max(maxN,n[k]);
+ for(const k in n){const b=document.querySelector(`[data-n="${k}"]`),fl=document.querySelector(`[data-c="${k}"]`);if(b)b.textContent=n[k];if(fl)fl.style.width=(100*n[k]/maxN)+'%'}
  const bal=Math.abs(f-r)<0.12*Math.max(f,r)+0.08,want=bal?'eq':f>r?'fwd':'rev';
- if(want!==status){status=want;const el=$('status'),P=S.eqP.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + '),R=S.eq.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + ');
-  el.className='status card '+want;el.textContent=want==='eq'?'⚖️ Balanced: forward = reverse':want==='fwd'?`➡️ Shifting forward, making ${P}`:`⬅️ Shifting back, making ${R}`}}
-function graph(){const S=SYS[sys],cv=$('gr'),w=600,h=240,ctx=fit(cv,w,h),H=st.hist;ctx.clearRect(0,0,w,h);if(H.length<2)return;
- const ks=Object.keys(S.sp);let mx=1;for(const p of H)for(const k of ks)mx=Math.max(mx,p.c[k]);const t1=st.t,t0=t1-30,X=t=>(t-t0)/30*(w-20)+10,Y=v=>h-12-(v/mx)*(h-24);
+ if(want!==status){status=want;const el=$('status');el.className='status card '+want;
+  if(ride){el.textContent=want==='eq'?'⚖️ Balanced: boarding = back in line':want==='fwd'?'➡️ Shifting toward the ride':'⬅️ Shifting back toward the line';return}
+  const P=S.eqP.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + '),R=S.eq.filter(e=>S.sp[e[1]]).map(e=>S.sp[e[1]].l).join(' + ');
+  el.textContent=want==='eq'?'⚖️ Balanced: forward = reverse':want==='fwd'?`➡️ Shifting forward, making ${P}`:`⬅️ Shifting back, making ${R}`}}
+function graph(){const ride=RIDEMODE(),cv=$('gr'),w=600,h=240,ctx=fit(cv,w,h),H=st.hist;ctx.clearRect(0,0,w,h);if(H.length<2)return;
+ const ks=ride?['q','r']:Object.keys(SYS[sys].sp),col=k=>{if(ride)return k==='q'?RC.gq:RC.gr;const e=SYS[sys].sp[k].e;return e==='#9c8456'?'#b49a62':e};let mx=1;for(const p of H)for(const k of ks)mx=Math.max(mx,p.c[k]);const t1=st.t,t0=t1-30,X=t=>(t-t0)/30*(w-20)+10,Y=v=>h-12-(v/mx)*(h-24);
  ctx.strokeStyle='#e3e8f0';ctx.lineWidth=1;for(let i=0;i<=4;i++){const y=12+i*(h-24)/4;ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(w-10,y);ctx.stroke()}
  let lastX=-1e9,row=0;for(const m of st.marks){if(m.t<t0)continue;const mx0=X(m.t);row=mx0-lastX<170?(row+1)%3:0;lastX=mx0;ctx.strokeStyle='#8a94a8';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(X(m.t),8);ctx.lineTo(X(m.t),h-8);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#4b566e';ctx.font='800 15px Nunito,system-ui,sans-serif';ctx.fillText(m.label,X(m.t)+5,22+row*18)}
- for(const k of ks){const e=SHAPES[k][0][4];ctx.strokeStyle=e==='#9c8456'?'#b49a62':e;ctx.lineWidth=4;ctx.beginPath();H.forEach((p,i)=>{const x=X(p.t),y=Y(p.c[k]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}
+ for(const k of ks){ctx.strokeStyle=col(k);ctx.lineWidth=4;ctx.beginPath();H.forEach((p,i)=>{const x=X(p.t),y=Y(p.c[k]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}
 function loop(now){raf=requestAnimationFrame(loop);if(document.hidden)return;const dt=Math.min(0.05,(now-last)/1000)*speed;last=now;
- if(!paused&&dt>0){eqStep(st,dt);if(st.t-lastSample>=0.2||lastSample<0){lastSample=st.t;const c={};for(const k in SYS[sys].sp)c[k]=st.x[k]/st.V;st.hist.push({t:st.t,c});while(st.hist.length&&st.hist[0].t<st.t-30)st.hist.shift();readout();graph()}}
+ if(!paused&&dt>0){const ride=RIDEMODE();if(ride)rideTick(dt);else eqStep(st,dt);
+  if(st.t-lastSample>=0.2||lastSample<0){lastSample=st.t;const c={};if(ride){c.q=st.xq;c.r=st.xr}else for(const k in SYS[sys].sp)c[k]=st.x[k]/st.V;st.hist.push({t:st.t,c});while(st.hist.length&&st.hist[0].t<st.t-30)st.hist.shift();readout();graph()}}
  draw()}
-function stress(i){const S=SYS[sys],it=S.stress[i];if(!it)return;eqChange(st,it[2],it[1].replace(/^\W+\s*/,'').replace(/\s*\(.*\)\s*$/,''))}
+function rideStress(k){
+ if(k==='bus'){if(st.guests.length<130)rideAdd(st,20,'tour bus')}
+ else if(k==='fire')rideAdd(st,-15,'fireworks');
+ else if(k==='crew'||k==='long'){st[k]=!st[k];const b=document.querySelector(`[data-s="${k}"]`);if(b)b.setAttribute('aria-pressed',st[k]);
+  st.marks.push({t:st.t,label:k==='crew'?(st.crew?'extra crew':'crew back to normal'):(st.long?'longer ride':'normal ride')})}}
+function stress(i){if(RIDEMODE()){const it=RIDE_STRESS[i];if(it)rideStress(it[0]);return}
+ const S=SYS[sys],it=S.stress[i];if(!it)return;eqChange(st,it[2],it[1].replace(/^\W+\s*/,'').replace(/\s*\(.*\)\s*$/,''))}
 function setT(c){c=Math.max(0,Math.min(100,c));$('tSl').value=c;eqSetT(st,273+c);$('tOut').textContent=c+' °C';clearTimeout(setT.m);setT.m=setTimeout(()=>st.marks.push({t:st.t,label:c+' °C'}),250)}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.sys){sys=b.dataset.sys;setup();return}
- if(b.dataset.s){stress(SYS[sys].stress.findIndex(x=>x[0]===b.dataset.s));return}
+ if(b.dataset.s){if(RIDEMODE())rideStress(b.dataset.s);else stress(SYS[sys].stress.findIndex(x=>x[0]===b.dataset.s));return}
  if(b.dataset.sp){speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed',x===b));return}
- if(b.dataset.r){const keep={V:st.V,T:st.T,cat:st.cat};st=b.dataset.r==='E'?fresh(null,keep):fresh(startFrom(b.dataset.r),keep);lastSample=-1;st.marks=[{t:0,label:b.dataset.r==='R'?'reactants only':b.dataset.r==='P'?'products only':'balanced'}];status='';return}
+ if(b.dataset.r){const r=b.dataset.r;
+  if(RIDEMODE()){st=rideFresh(r,{crew:st.crew,long:st.long});st.marks=[{t:0,label:r==='R'?'everyone in line':r==='P'?'everyone on the ride':'balanced'}]}
+  else{const keep={V:st.V,T:st.T,cat:st.cat};st=r==='E'?fresh(null,keep):fresh(startFrom(r),keep);st.marks=[{t:0,label:r==='R'?'reactants only':r==='P'?'products only':'balanced'}]}
+  lastSample=-1;status='';return}
  if(b.id==='catBtn'){st.cat=!st.cat;b.setAttribute('aria-pressed',st.cat);st.marks.push({t:st.t,label:st.cat?'catalyst on':'catalyst off'});return}
  if(b.id==='pauseBtn'){paused=!paused;b.setAttribute('aria-pressed',paused);b.textContent=paused?'▶ Play':'⏸ Pause';return}
  if(b.id==='fsBtn'){const d=document;if(d.fullscreenElement)d.exitFullscreen();else if(d.documentElement.requestFullscreen)d.documentElement.requestFullscreen().catch(()=>{});return}});
@@ -162,12 +225,13 @@ $('vSl').addEventListener('input',e=>{const v=+e.target.value;eqSetV(st,v/100);$
 document.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea')&&!/^[1-4]$/.test(e.key))return;if(e.altKey||e.ctrlKey||e.metaKey)return;
  if(e.key===' '&&!e.target.closest('button')){e.preventDefault();$('pauseBtn').click()}
  else if(/^[1-4]$/.test(e.key))stress(+e.key-1);
- else if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&SYS[sys].heat&&!e.target.closest('input')){e.preventDefault();setT(+$('tSl').value+(e.key==='ArrowRight'?10:-10))}
+ else if((e.key==='ArrowRight'||e.key==='ArrowLeft')&&!RIDEMODE()&&SYS[sys].heat&&!e.target.closest('input')){e.preventDefault();setT(+$('tSl').value+(e.key==='ArrowRight'?10:-10))}
  else if(e.key==='r'||e.key==='R')document.querySelector('[data-r="E"]').click();
  else if(e.key==='f'||e.key==='F')$('fsBtn').click()});
 if(!document.documentElement.requestFullscreen)$('fsBtn').hidden=true;
 setup();last=performance.now();raf=requestAnimationFrame(loop);
-window.PROJECTOR={state:()=>({sys,paused,speed,n:Object.assign({},st.n),parts:st.parts.length,t:st.t,cat:st.cat,T:st.T,V:st.V})};
+window.PROJECTOR={state:()=>RIDEMODE()?({sys,paused,speed,n:counts(),guests:st.guests.length,t:st.t,crew:st.crew,long:st.long,f:st.ema.f,r:st.ema.r})
+ :({sys,paused,speed,n:Object.assign({},st.n),parts:st.parts.length,t:st.t,cat:st.cat,T:st.T,V:st.V})};
 })();
 </script>
 <script src="../../embed.js" defer></script>
